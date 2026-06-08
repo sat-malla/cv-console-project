@@ -1,0 +1,9 @@
+{
+  "venvPath": "cv-console-backend",
+  "venv": "venv",
+  "executionEnvironments": [
+    {
+      "root": "cv-console-backend"
+    }
+  ]
+}

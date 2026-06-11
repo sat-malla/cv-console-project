@@ -1,4 +1,5 @@
 import camImg from "@/assets/camera-placeholder.jpg";
+import VideoPanel from "./video-panel.tsx";
 
 const NEON = ["#ff1717", "#ff7817", "#f6ff47", "#00db58", "#2008ff", "#b908ff"];
 const CAMS = [
@@ -25,20 +26,11 @@ export function CameraGrid() {
             }}
           >
             <div className="relative aspect-[16/10] overflow-hidden">
-              <img
-                src={camImg}
-                alt={`${c.id} feed`}
-                loading="lazy"
-                width={1024}
-                height={640}
-                className="h-full w-full object-cover saturate-[1.1] contrast-[1.05]"
-              />
-              {/* scanlines */}
+              <VideoPanel url="ws://127.0.0.1:8000/video" />
               <div
                 className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay"
                 style={{ background: "repeating-linear-gradient(0deg, rgba(255,255,255,0.15) 0 1px, transparent 1px 3px)" }}
               />
-              {/* top overlay */}
               <div className="absolute top-0 left-0 right-0 p-3 flex items-center justify-between font-mono text-[11px]">
                 <div className="flex items-center gap-2">
                   <span className="live-dot inline-block h-2 w-2 rounded-full" style={{ background: color, boxShadow: `0 0 8px ${color}` }} />
@@ -46,7 +38,6 @@ export function CameraGrid() {
                 </div>
                 <span className="px-2 py-0.5 rounded bg-black/55 text-white/90 tracking-wider">REC · 1080p</span>
               </div>
-              {/* bottom overlay */}
               <div className="absolute bottom-0 left-0 right-0 p-3 flex items-end justify-between font-mono text-[11px] bg-gradient-to-t from-black/70 to-transparent">
                 <div className="text-white">
                   <div className="text-sm font-semibold tracking-tight">{c.label}</div>
@@ -54,7 +45,6 @@ export function CameraGrid() {
                 </div>
                 <div className="text-white/80">{new Date().toLocaleTimeString([], { hour12: false })}</div>
               </div>
-              {/* corner brackets */}
               {[
                 "top-2 left-2 border-t border-l",
                 "top-2 right-2 border-t border-r",

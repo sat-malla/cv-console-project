@@ -3,12 +3,12 @@ import VideoPanel from "./video-panel.tsx";
 
 const NEON = ["#ff1717", "#ff7817", "#f6ff47", "#00db58", "#2008ff", "#b908ff"];
 const CAMS = [
-  { id: "CAM-01", label: "North Gate", loc: "Sector A · 41.40N 2.16E" },
-  { id: "CAM-02", label: "Atrium Lobby", loc: "Sector B · L1" },
-  { id: "CAM-03", label: "Loading Bay", loc: "Sector C · L0" },
-  { id: "CAM-04", label: "Rooftop Pad", loc: "Sector D · R7" },
-  { id: "CAM-05", label: "East Corridor", loc: "Sector E · L3" },
-  { id: "CAM-06", label: "Server Vault", loc: "Sector F · B2" },
+  { id: "CAM-01", label: "North Gate", loc: "Sector A · 41.40N 2.16E", url: "ws://127.0.0.1:8000/regular" },
+  { id: "CAM-02", label: "Atrium Lobby", loc: "Sector B · L1", url: "ws://127.0.0.1:8000/canny"  },
+  { id: "CAM-03", label: "Loading Bay", loc: "Sector C · L0", url: "ws://127.0.0.1:8000/regular" },
+  { id: "CAM-04", label: "Rooftop Pad", loc: "Sector D · R7", url: "ws://127.0.0.1:8000/regular" },
+  { id: "CAM-05", label: "East Corridor", loc: "Sector E · L3", url: "ws://127.0.0.1:8000/regular" },
+  { id: "CAM-06", label: "Server Vault", loc: "Sector F · B2", url: "ws://127.0.0.1:8000/regular" },
 ];
 
 export function CameraGrid() {
@@ -25,8 +25,8 @@ export function CameraGrid() {
               boxShadow: `0 0 0 1px ${color}33 inset, 0 0 18px -4px ${color}, 0 0 40px -16px ${color}`,
             }}
           >
-            <div className="relative aspect-[16/10] overflow-hidden">
-              <VideoPanel url="ws://127.0.0.1:8000/video" />
+            <div className="relative aspect-16/10 overflow-hidden">
+              <VideoPanel url={c.url} />
               <div
                 className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay"
                 style={{ background: "repeating-linear-gradient(0deg, rgba(255,255,255,0.15) 0 1px, transparent 1px 3px)" }}

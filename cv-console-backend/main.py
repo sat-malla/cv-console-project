@@ -38,7 +38,8 @@ async def video_feed(websocket: WebSocket):
             if latest_frame is None:
                 await asyncio.sleep(0.01)
                 continue
-            _, buffer = cv2.imencode('.jpg', latest_frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            frame = latest_frame.copy()
+            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
             await websocket.send_bytes(buffer.tobytes())
             await asyncio.sleep(0.033)
     except WebSocketDisconnect:
@@ -52,10 +53,16 @@ async def canny_feed(websocket: WebSocket):
             if latest_frame is None:
                 await asyncio.sleep(0.01)
                 continue
+                
+            frame = latest_frame.copy()
         
-            gray = cv2.cvtColor(latest_frame, cv2.COLOR_BGR2GRAY)
+            if len(frame.shape) == 2 or frame.shape[2] == 1:
+                gray = frame
+            else:
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
             edges = cv2.Canny(gray, threshold1=100, threshold2=200)
-            edges_bgr = cv2.cvtColor(edges, cv2.COLOR_BGR2GRAY)
+            edges_bgr = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
 
             _, buffer = cv2.imencode('.jpg', edges_bgr, [cv2.IMWRITE_JPEG_QUALITY, 70])
             await websocket.send_bytes(buffer.tobytes())

@@ -16,8 +16,8 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   return (
-    <div className="mx-auto max-w-[1600px] px-6 py-8">
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+   <div className="min-h-screen w-full flex flex-col">
+      <div className="px-6 py-8 flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>
           <div className="text-xs font-mono tracking-[0.3em] text-muted-foreground">// LIVE CONSOLE</div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight mt-1">
@@ -31,7 +31,11 @@ function Index() {
           <Stat icon={<Cpu className="h-3.5 w-3.5" />} label="LOAD" value="38%" color="#b908ff" />
         </div>
       </div>
-      <CameraGrid />
+
+
+      <div className="flex-1 pl-6 pr-0 overflow-hidden">
+        <CameraGrid />
+      </div>
     </div>
   );
 }

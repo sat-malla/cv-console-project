@@ -21,6 +21,12 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(capture_loop())
     yield
 
+fgbg = cv2.createBackgroundSubtractorMOG2(
+    history=100, # frames to build background from
+    varThreshold=50, # lower sensitivity -> better motion detection
+    detectShadows=True # gray shadows
+)
+
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
@@ -43,7 +49,7 @@ async def video_feed(websocket: WebSocket):
             await websocket.send_bytes(buffer.tobytes())
             await asyncio.sleep(0.033)
     except WebSocketDisconnect:
-        print("Disconnected")
+        print("Regular Cam Disconnected")
 
 @app.websocket("/canny")
 async def canny_feed(websocket: WebSocket):
@@ -68,4 +74,27 @@ async def canny_feed(websocket: WebSocket):
             await websocket.send_bytes(buffer.tobytes())
             await asyncio.sleep(0.033)
     except WebSocketDisconnect:
-        print("Disconnected")
+        print("Canny Cam Disconnected")
+
+@app.websocket("/motion")
+async def mog2_feed(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            if latest_frame is None:
+                await asyncio.sleep(0.01)
+                continue
+            
+            frame = latest_frame.copy()
+            fg_mask = fgbg.apply(frame)
+            _, fg_mask = cv2.threshold(fg_mask, 200, 255, cv2.THRESH_BINARY) # kill gray shadow values
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+            fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_OPEN, kernel) # removing ghost noise
+            fg_mask = cv2.dilate(fg_mask, kernel, iterations=2) # dilates back to fill in real motion
+            fg_bgr = cv2.cvtColor(fg_mask, cv2.COLOR_GRAY2BGR)
+
+            _, buffer = cv2.imencode('.jpg', fg_bgr, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            await websocket.send_bytes(buffer.tobytes())
+            await asyncio.sleep(0.033)
+    except WebSocketDisconnect:
+        print("MOG2 Cam Disconnected")

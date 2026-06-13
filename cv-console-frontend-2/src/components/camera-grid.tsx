@@ -5,7 +5,7 @@ const NEON = ["#ff1717", "#ff7817", "#f6ff47", "#00db58", "#2008ff", "#b908ff"];
 const CAMS = [
   { id: "CAM-01", label: "North Gate", loc: "Sector A · 41.40N 2.16E", url: "ws://127.0.0.1:8000/regular" },
   { id: "CAM-02", label: "Atrium Lobby", loc: "Sector B · L1", url: "ws://127.0.0.1:8000/canny"  },
-  { id: "CAM-03", label: "Loading Bay", loc: "Sector C · L0", url: "ws://127.0.0.1:8000/regular" },
+  { id: "CAM-03", label: "Loading Bay", loc: "Sector C · L0", url: "ws://127.0.0.1:8000/motion" },
   { id: "CAM-04", label: "Rooftop Pad", loc: "Sector D · R7", url: "ws://127.0.0.1:8000/regular" },
   { id: "CAM-05", label: "East Corridor", loc: "Sector E · L3", url: "ws://127.0.0.1:8000/regular" },
   { id: "CAM-06", label: "Server Vault", loc: "Sector F · B2", url: "ws://127.0.0.1:8000/regular" },

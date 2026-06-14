@@ -15,6 +15,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { NavBar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { AgentBot } from "@/components/agent-bot";
+import { SettingsPanelProvider, SettingsSidePanel } from "@/components/settings-panel";
 
 function NotFoundComponent() {
   return (
@@ -114,14 +115,19 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <div className="min-h-screen flex flex-col">
-          <NavBar />
-          <main className="flex-1">
-            <Outlet />
-          </main>
-          <Footer />
-          <AgentBot />
-        </div>
+        <SettingsPanelProvider>
+          <div className="min-h-screen flex flex-col">
+            <NavBar />
+            <div className="flex-1 flex gap-6">
+              <main className="flex-1 min-w-0">
+                <Outlet />
+              </main>
+              <SettingsSidePanel />
+            </div>
+            <Footer />
+            <AgentBot />
+          </div>
+        </SettingsPanelProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

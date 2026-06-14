@@ -1,14 +1,7 @@
 import { useState } from "react";
 import VideoPanel from "./video-panel.tsx";
-import SettingsPanel from "./settings-panel.tsx";
-
-export type Cam = {
-  id: string;
-  label: string;
-  loc: string;
-  url: string;
-  type: string;
-};
+import { useSettingsPanel } from "./settings-panel.tsx";
+import { Settings } from "lucide-react";
 
 const NEON = ["#ff1717", "#ff7817", "#f6ff47", "#00db58", "#2008ff", "#b908ff"];
 const CAMS = [
@@ -129,6 +122,7 @@ function buildDefaultConfig(): Config {
 export function CameraGrid() {
   const [activePanel, setActivePanel] = useState<number | null>(null);
   const [config, setConfig] = useState<Config>(buildDefaultConfig);
+  const { open } = useSettingsPanel();
 
   const togglePanel = (i: number) =>
     setActivePanel((prev) => (prev === i ? null : i));
@@ -151,13 +145,13 @@ export function CameraGrid() {
           return (
             <div
               key={c.id}
-              className="group relative rounded-2xl overflow-hidden bg-card transition-transform hover:-translate-y-0.5"
+              className="group relative rounded-2xl bg-card transition-transform hover:-translate-y-0.5"
               style={{
                 border: `1px solid ${color}`,
                 boxShadow: `0 0 0 1px ${color}33 inset, 0 0 18px -4px ${color}, 0 0 40px -16px ${color}`,
               }}
             >
-              <div className="relative aspect-16/10 overflow-hidden">
+              <div className="relative aspect-16/10 overflow-hidden rounded-2xl">
                 <VideoPanel url={c.url} />
                 <div
                   className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay"
@@ -184,27 +178,13 @@ export function CameraGrid() {
                       REC · 1080p
                     </span>
                     <button
-                      onClick={() => togglePanel(i)}
-                      className={`flex items-center justify-center w-6 h-6 rounded bg-black/55 border transition-colors ${
-                        activePanel === i
-                          ? "border-white/40 text-white"
-                          : "border-white/10 text-white/50 hover:text-white hover:border-white/30"
-                      }`}
-                      aria-label={`Settings for ${c.id}`}
+                      type="button"
+                      onClick={() => open(c.id)}
+                      aria-label={`${c.id} settings`}
+                      className="grid place-items-center h-6 w-6 rounded bg-black/55 text-white/90 hover:text-white hover:bg-black/75 transition-colors"
+                      style={{ boxShadow: `0 0 8px -2px ${color}` }}
                     >
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                      </svg>
+                      <Settings className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </div>
@@ -238,18 +218,6 @@ export function CameraGrid() {
           );
         })}
       </div>
-      {activePanel !== null && activePanel && (
-          <div className="w-72 shrink-0">
-            <SettingsPanel
-              activeCam={activeCam}
-              activePanel={activePanel}
-              activeSettings={activeSettings}
-              config={config}
-              setActivePanel={setActivePanel}
-              updateConfig={updateConfig}
-            />
-          </div>
-        )}
     </div>
   );
 }

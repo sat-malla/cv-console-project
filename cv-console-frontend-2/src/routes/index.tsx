@@ -33,7 +33,7 @@ function Index() {
       </div>
 
 
-      <div className="flex-1 pl-6 pr-0 overflow-hidden">
+      <div className="flex-1 pl-6 pr-0 overflow-visible">
         <CameraGrid />
       </div>
     </div>

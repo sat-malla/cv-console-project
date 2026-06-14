@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import VideoPanel from "./video-panel.tsx";
 import { useSettingsPanel } from "./settings-panel.tsx";
 import { Settings } from "lucide-react";
@@ -123,6 +123,7 @@ export function CameraGrid() {
   const [activePanel, setActivePanel] = useState<number | null>(null);
   const [config, setConfig] = useState<Config>(buildDefaultConfig);
   const { open } = useSettingsPanel();
+  const socketRefs = useRef<Record<string, WebSocket>>({});
 
   const togglePanel = (i: number) =>
     setActivePanel((prev) => (prev === i ? null : i));
@@ -152,7 +153,7 @@ export function CameraGrid() {
               }}
             >
               <div className="relative aspect-16/10 overflow-hidden rounded-2xl">
-                <VideoPanel url={c.url} />
+                <VideoPanel url={c.url} onSocket={(ws) => { socketRefs.current[c.id] = ws; } } />
                 <div
                   className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay"
                   style={{
@@ -179,7 +180,7 @@ export function CameraGrid() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => open(c.id, c.type)}
+                      onClick={() => open(c.id, c.type, socketRefs.current[c.id])}
                       aria-label={`${c.id} settings`}
                       className="grid place-items-center h-6 w-6 rounded bg-black/55 text-white/90 hover:text-white hover:bg-black/75 transition-colors"
                       style={{ boxShadow: `0 0 8px -2px ${color}` }}

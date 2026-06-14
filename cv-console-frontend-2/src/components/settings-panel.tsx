@@ -28,7 +28,8 @@ type OpenCam = { id: string; type: string } | null;
 type Ctx = {
   openCam: OpenCam;
   values: Record<string, number>;
-  open: (id: string, type: string) => void;
+  ws: WebSocket | null;
+  open: (id: string, type: string, ws: WebSocket) => void;
   close: () => void;
   update: (key: string, val: number) => void;
 };
@@ -38,20 +39,25 @@ const SettingsPanelCtx = createContext<Ctx | null>(null);
 export function SettingsPanelProvider({ children }: { children: ReactNode }) {
   const [openCam, setOpenCam] = useState<OpenCam>(null);
   const [values, setValues] = useState<Record<string, number>>({});
+  const [ws, setWs] = useState<WebSocket | null>(null);
 
-  const open = (id: string, type: string) => {
+  const open = (id: string, type: string, socket: WebSocket) => {
     const defaults: Record<string, number> = {};
     (SETTINGS[type] ?? []).forEach(s => { defaults[s.key] = s.default; });
     setOpenCam({ id, type });
     setValues(defaults);
+    setWs(socket);
   };
 
-  const close = () => setOpenCam(null);
+  const close = () => {
+    setOpenCam(null);
+    setWs(null);
+  };
 
   const update = (key: string, val: number) => setValues(prev => ({ ...prev, [key]: val }));
 
   return (
-    <SettingsPanelCtx.Provider value={{ openCam, values, open, close, update }}>
+    <SettingsPanelCtx.Provider value={{ openCam, values, ws, open, close, update }}>
       {children}
     </SettingsPanelCtx.Provider>
   );
@@ -64,7 +70,7 @@ export function useSettingsPanel() {
 }
 
 export function SettingsSidePanel() {
-  const { openCam, values, close, update } = useSettingsPanel();
+  const { openCam, values, ws, close, update } = useSettingsPanel();
   if (!openCam) return null;
 
   const params = SETTINGS[openCam.type] ?? [];
@@ -73,7 +79,6 @@ export function SettingsSidePanel() {
       className="w-72 shrink-0 border-l border-border bg-card flex flex-col"
       aria-label={`${openCam.id} settings`}
     >
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div>
           <div className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase mb-0.5">
@@ -92,7 +97,6 @@ export function SettingsSidePanel() {
         </button>
       </div>
 
-      {/* Sliders */}
       <div className="flex-1 overflow-y-auto p-4">
         {params.length === 0 ? (
           <p className="text-xs text-muted-foreground italic">No parameters for this view.</p>
@@ -123,10 +127,9 @@ export function SettingsSidePanel() {
         )}
       </div>
 
-      {/* Apply */}
       <div className="p-4 border-t border-border">
         <button
-          onClick={() => console.log("Apply", openCam.id, values)}
+          onClick={() => { if (ws) ws.send(JSON.stringify(values)) }}
           className="w-full py-2 rounded-lg border border-border font-mono text-[10px] tracking-widest uppercase text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
         >
           Apply changes

@@ -66,6 +66,14 @@
 
   --neon-border: rgba(20, 20, 20, 0.85);
   --grid-line: rgba(0, 0, 0, 0.06);
+  --camera-frame-gradient: linear-gradient(135deg,
+    rgba(0, 7, 45, 0.9),
+    rgba(0, 28, 85, 0.85),
+    rgba(10, 36, 114, 0.8),
+    rgba(14, 107, 168, 0.75),
+    rgba(166, 225, 250, 0.7)
+  );
+  --camera-glow: 0 6px 24px -10px rgba(10, 36, 114, 0.35), 0 2px 6px -2px rgba(14, 107, 168, 0.25);
 }
 
 .dark {
@@ -92,6 +100,14 @@
 
   --neon-border: rgba(255, 255, 255, 0.95);
   --grid-line: rgba(255, 255, 255, 0.05);
+   --camera-frame-gradient: linear-gradient(135deg,
+    #00072d,
+    #001c55,
+    #0a2472,
+    #0e6ba8,
+    #a6e1fa
+  );
+  --camera-glow: 0 0 30px -8px rgba(14, 107, 168, 0.5), 0 0 60px -20px rgba(166, 225, 250, 0.35);
 }
 
 :root { --bg-base: #ffffe3; }
@@ -123,24 +139,18 @@
 }
 
 @utility rainbow-stroke {
-  background: linear-gradient(90deg,
-    #ff1717, #ff7817, #f6ff47, #00db58, #2008ff, #b908ff, #ff08d6, #ff1717);
-  background-size: 300% 100%;
-  animation: rainbow-shift 8s linear infinite;
+  background: linear-gradient(90deg, #00072d, #001c55, #0a2472, #0e6ba8, #a6e1fa);
 }
 
 @utility rainbow-text {
-  background: linear-gradient(90deg,
-    #ff1717, #ff7817, #f6ff47, #00db58, #2008ff, #b908ff, #ff08d6, #ff1717);
-  background-size: 300% 100%;
+  background: linear-gradient(90deg, #0a2472, #0e6ba8, #a6e1fa);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: rainbow-shift 8s linear infinite;
 }
 
-@keyframes rainbow-shift {
-  to { background-position: 300% 0; }
+@utility brand-gradient {
+  background: linear-gradient(135deg, #00072d, #001c55, #0a2472, #0e6ba8, #a6e1fa);
 }
 
 @keyframes pulse-dot {
@@ -150,4 +160,19 @@
 
 @utility live-dot {
   animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+@utility camera-frame {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    var(--camera-frame-gradient) border-box;
+  box-shadow: var(--camera-glow);
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+@utility camera-frame-hover {
+  box-shadow:
+    0 0 0 1px rgba(14, 107, 168, 0.4),
+    0 12px 36px -10px rgba(10, 36, 114, 0.45),
+    0 0 60px -20px rgba(166, 225, 250, 0.4);
 }

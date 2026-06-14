@@ -76,7 +76,7 @@ export function SettingsSidePanel() {
   const params = SETTINGS[openCam.type] ?? [];
   return (
     <aside
-      className="w-72 shrink-0 border-l border-border bg-card flex flex-col"
+      className="w-72 h-250 shrink-0 border-l border-border bg-card flex flex-col"
       aria-label={`${openCam.id} settings`}
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">

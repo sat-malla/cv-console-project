@@ -1,9 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import VideoPanel from "./video-panel.tsx";
 import { useSettingsPanel } from "./settings-panel.tsx";
 import { Settings } from "lucide-react";
 
-const NEON = ["#ff1717", "#ff7817", "#f6ff47", "#00db58", "#2008ff", "#b908ff"];
 const CAMS = [
   {
     id: "CAM-01",
@@ -108,6 +107,17 @@ const SETTINGS: Record<
 
 type Config = Record<string, Record<string, number>>;
 
+function Clock() {
+  const [t, setT] = useState<string>("");
+  useEffect(() => {
+    const fmt = () => new Date().toLocaleTimeString([], { hour12: false });
+    setT(fmt());
+    const id = setInterval(() => setT(fmt()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return <span className="text-white/80 font-mono text-[11px]">{t}</span>;
+}
+
 function buildDefaultConfig(): Config {
   const config: Config = {};
   CAMS.forEach((c, i) => {
@@ -142,34 +152,19 @@ export function CameraGrid() {
       <div style={{ gridTemplateColumns: activePanel !== null ? "repeat(2, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))" }}
   className="grid gap-5 md:gap-6 transition-all duration-300 flex-1 min-w-0">
         {CAMS.map((c, i) => {
-          const color = NEON[i % NEON.length];
           return (
             <div
               key={c.id}
-              className="group relative rounded-2xl bg-card transition-transform hover:-translate-y-0.5"
-              style={{
-                border: `1px solid ${color}`,
-                boxShadow: `0 0 0 1px ${color}33 inset, 0 0 18px -4px ${color}, 0 0 40px -16px ${color}`,
-              }}
+              className="group relative overflow-hidden camera-frame hover:camera-frame-hover transition-transform hover:-translate-y-0.5"
             >
-              <div className="relative aspect-16/10 overflow-hidden rounded-2xl">
+              <div className="relative aspect-16/10 overflow-hidden">
                 <VideoPanel url={c.url} onSocket={(ws) => { socketRefs.current[c.id] = ws; } } />
                 <div
                   className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay"
-                  style={{
-                    background:
-                      "repeating-linear-gradient(0deg, rgba(255,255,255,0.15) 0 1px, transparent 1px 3px)",
-                  }}
+              style={{ background: "repeating-linear-gradient(0deg, rgba(255,255,255,0.15) 0 1px, transparent 1px 3px)" }}
                 />
                 <div className="absolute top-0 left-0 right-0 p-3 flex items-center justify-between font-mono text-[11px]">
                   <div className="flex items-center gap-2">
-                    <span
-                      className="live-dot inline-block h-2 w-2 rounded-full"
-                      style={{
-                        background: color,
-                        boxShadow: `0 0 8px ${color}`,
-                      }}
-                    />
                     <span className="px-2 py-0.5 rounded bg-black/55 text-white tracking-widest">
                       {c.id}
                     </span>
@@ -183,7 +178,6 @@ export function CameraGrid() {
                       onClick={() => open(c.id, c.type, socketRefs.current[c.id])}
                       aria-label={`${c.id} settings`}
                       className="grid place-items-center h-6 w-6 rounded bg-black/55 text-white/90 hover:text-white hover:bg-black/75 transition-colors"
-                      style={{ boxShadow: `0 0 8px -2px ${color}` }}
                     >
                       <Settings className="h-3.5 w-3.5" />
                     </button>

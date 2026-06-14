@@ -83,11 +83,9 @@ async def canny_feed(websocket: WebSocket):
                 data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
                 incoming = json.loads(data)
                 canny_config.update(incoming)
-                print(f"Canny config updated: {canny_config}")
             except asyncio.TimeoutError:
                 continue
             except Exception as e:
-                print(f"recv_config closing: {e}")
                 stop.set()
                 break
     try:
@@ -131,11 +129,9 @@ async def mog2_feed(websocket: WebSocket):
                 data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
                 incoming = json.loads(data)
                 motion_config.update(incoming)
-                print(f"Motion config updated: {motion_config}")
             except asyncio.TimeoutError:
                 continue
             except Exception as e:
-                print(f"recv_config closing: {e}")
                 stop.set()
                 break
     try:

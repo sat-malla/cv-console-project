@@ -27,7 +27,7 @@ type OpenCam = { id: string; type: string } | null;
 
 type Ctx = {
   openCam: OpenCam;
-  values: Record<string, number>;
+  allValues: Record<string, Record<string, number>>;
   ws: WebSocket | null;
   open: (id: string, type: string, ws: WebSocket) => void;
   close: () => void;
@@ -38,14 +38,24 @@ const SettingsPanelCtx = createContext<Ctx | null>(null);
 
 export function SettingsPanelProvider({ children }: { children: ReactNode }) {
   const [openCam, setOpenCam] = useState<OpenCam>(null);
-  const [values, setValues] = useState<Record<string, number>>({});
+  const [values, setValues] = useState<Record<string, number>>(() => {
+    try {
+        const saved = localStorage.getItem("cv-config");
+        return saved ? JSON.parse(saved) : {};
+    } catch {
+        return {};
+    } 
+  });
   const [ws, setWs] = useState<WebSocket | null>(null);
+  const [allValues, setAllValues] = useState<Record<string, Record<string, number>>>({});
 
   const open = (id: string, type: string, socket: WebSocket) => {
-    const defaults: Record<string, number> = {};
-    (SETTINGS[type] ?? []).forEach(s => { defaults[s.key] = s.default; });
+    if (!allValues[id]) {
+        const defaults: Record<string, number> = {};
+        (SETTINGS[type] ?? []).forEach(s => { defaults[s.key] = s.default; });
+        setAllValues(prev => ({ ...prev, [id]: defaults }))
+    }
     setOpenCam({ id, type });
-    setValues(defaults);
     setWs(socket);
   };
 
@@ -54,10 +64,17 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     setWs(null);
   };
 
-  const update = (key: string, val: number) => setValues(prev => ({ ...prev, [key]: val }));
+  const update = (key: string, val: number) => {
+    if (!openCam) return;
+    const newVals = { ...allValues[openCam.id], [key]: val };
+    setAllValues(prev => ({ ...prev, [openCam.id]: newVals }));
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(newVals));
+    }
+  };
 
   return (
-    <SettingsPanelCtx.Provider value={{ openCam, values, ws, open, close, update }}>
+    <SettingsPanelCtx.Provider value={{ openCam, allValues, ws, open, close, update }}>
       {children}
     </SettingsPanelCtx.Provider>
   );
@@ -70,7 +87,8 @@ export function useSettingsPanel() {
 }
 
 export function SettingsSidePanel() {
-  const { openCam, values, ws, close, update } = useSettingsPanel();
+  const { openCam, allValues, ws, close, update } = useSettingsPanel();
+  const values = allValues[openCam?.id ?? ""] ?? {};
   if (!openCam) return null;
 
   const params = SETTINGS[openCam.type] ?? [];
@@ -125,15 +143,6 @@ export function SettingsSidePanel() {
             ))}
           </div>
         )}
-      </div>
-
-      <div className="p-4 border-t border-border">
-        <button
-          onClick={() => { if (ws) ws.send(JSON.stringify(values)) }}
-          className="w-full py-2 rounded-lg border border-border font-mono text-[10px] tracking-widest uppercase text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
-        >
-          Apply changes
-        </button>
       </div>
     </aside>
   );

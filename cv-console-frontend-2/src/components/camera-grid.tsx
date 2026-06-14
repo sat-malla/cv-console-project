@@ -179,7 +179,7 @@ export function CameraGrid() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => open(c.id)}
+                      onClick={() => open(c.id, c.type)}
                       aria-label={`${c.id} settings`}
                       className="grid place-items-center h-6 w-6 rounded bg-black/55 text-white/90 hover:text-white hover:bg-black/75 transition-colors"
                       style={{ boxShadow: `0 0 8px -2px ${color}` }}
@@ -200,19 +200,6 @@ export function CameraGrid() {
                     {new Date().toLocaleTimeString([], { hour12: false })}
                   </div>
                 </div>
-
-                {[
-                  "top-2 left-2 border-t border-l",
-                  "top-2 right-2 border-t border-r",
-                  "bottom-2 left-2 border-b border-l",
-                  "bottom-2 right-2 border-b border-r",
-                ].map((cls) => (
-                  <span
-                    key={cls}
-                    className={`absolute h-4 w-4 ${cls}`}
-                    style={{ borderColor: color }}
-                  />
-                ))}
               </div>
             </div>
           );

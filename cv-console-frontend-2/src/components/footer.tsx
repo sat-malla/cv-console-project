@@ -5,8 +5,8 @@ import logo from "@/assets/logo.png";
 export function Footer() {
   return (
     <footer className="mt-16 border-t border-border bg-background/60">
-      <div className="h-[2px] w-full rainbow-stroke opacity-70" />
-      <div className="mx-auto max-w-[1600px] px-6 py-10 grid gap-10 md:grid-cols-4">
+      <div className="h-0.5 w-full rainbow-stroke opacity-70" />
+      <div className="mx-auto max-w-400 px-6 py-10 grid gap-10 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-3">
             <img src={logo} alt="logo" width={32} height={32} loading="lazy" />
@@ -62,7 +62,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-border">
-        <div className="mx-auto max-w-[1600px] px-6 py-4 text-xs text-muted-foreground font-mono flex justify-between flex-wrap gap-2">
+        <div className="mx-auto max-w-400 px-6 py-4 text-xs text-muted-foreground font-mono flex justify-between flex-wrap gap-2">
           <span>© {new Date().getFullYear()} PRISM-VISION SYSTEMS. All rights reserved.</span>
           <span>Built for operators · v0.1.0</span>
         </div>

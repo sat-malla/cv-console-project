@@ -29,8 +29,8 @@ const CAMS = [
     id: "CAM-04",
     label: "Rooftop Pad",
     loc: "Sector D · R7",
-    url: "ws://127.0.0.1:8000/regular",
-    type: "regular",
+    url: "ws://127.0.0.1:8000/yolo",
+    type: "yolo",
   },
   {
     id: "CAM-05",
@@ -58,6 +58,7 @@ const SETTINGS: Record<
     step: number;
   }[]
 > = {
+  regular: [],
   canny: [
     {
       key: "threshold1",
@@ -102,21 +103,35 @@ const SETTINGS: Record<
       step: 1,
     },
   ],
-  regular: [],
+  yolo: [
+    {
+      key: "conf_threshold",
+      label: "Confidence Threshold",
+      min: 0.1,
+      max: 0.95,
+      default: 0.4,
+      step: 0.05
+    },
+    {
+      key: "box_thickness",
+      label: "Box Thickness",
+      min: 1,
+      max: 6,
+      default: 2,
+      step: 1
+    },
+    {
+      key: "max_detections",
+      label: "Max Detections",
+      min: 1,
+      max: 50,
+      default: 20,
+      step: 1
+    }
+  ]
 };
 
 type Config = Record<string, Record<string, number>>;
-
-function Clock() {
-  const [t, setT] = useState<string>("");
-  useEffect(() => {
-    const fmt = () => new Date().toLocaleTimeString([], { hour12: false });
-    setT(fmt());
-    const id = setInterval(() => setT(fmt()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  return <span className="text-white/80 font-mono text-[11px]">{t}</span>;
-}
 
 function buildDefaultConfig(): Config {
   const config: Config = {};
@@ -134,15 +149,6 @@ export function CameraGrid() {
   const [config, setConfig] = useState<Config>(buildDefaultConfig);
   const { open } = useSettingsPanel();
   const socketRefs = useRef<Record<string, WebSocket>>({});
-
-  const togglePanel = (i: number) =>
-    setActivePanel((prev) => (prev === i ? null : i));
-
-  const updateConfig = (camIdx: number, key: string, val: number) =>
-    setConfig((prev) => ({
-      ...prev,
-      [camIdx]: { ...prev[camIdx], [key]: val },
-    }));
 
   const activeCam = activePanel !== null ? CAMS[activePanel] : null;
   const activeSettings = activeCam ? (SETTINGS[activeCam.type] ?? []) : [];

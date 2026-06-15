@@ -11,6 +11,7 @@ type SettingParam = {
 };
 
 export const SETTINGS: Record<string, SettingParam[]> = {
+  regular: [],
   canny: [
     { key: "threshold1", label: "Lower threshold", min: 0, max: 255, default: 100, step: 1 },
     { key: "threshold2", label: "Upper threshold", min: 0, max: 255, default: 200, step: 1 },
@@ -20,7 +21,32 @@ export const SETTINGS: Record<string, SettingParam[]> = {
     { key: "history", label: "History frames", min: 50, max: 500, default: 500, step: 10 },
     { key: "dilateIter", label: "Dilate iterations", min: 0, max: 5, default: 2, step: 1 },
   ],
-  regular: [],
+  yolo: [
+    {
+      key: "conf_threshold",
+      label: "Confidence Threshold",
+      min: 0.1,
+      max: 0.95,
+      default: 0.4,
+      step: 0.05,
+    },
+    {
+      key: "box_thickness",
+      label: "Box Thickness",
+      min: 1,
+      max: 6,
+      default: 2,
+      step: 1,
+    },
+    {
+      key: "max_detections",
+      label: "Max Detections",
+      min: 1,
+      max: 50,
+      default: 20,
+      step: 1,
+    },
+  ],
 };
 
 type OpenCam = { id: string; type: string } | null;
@@ -40,20 +66,22 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
   const [openCam, setOpenCam] = useState<OpenCam>(null);
   const [values, setValues] = useState<Record<string, number>>(() => {
     try {
-        const saved = localStorage.getItem("cv-config");
-        return saved ? JSON.parse(saved) : {};
+      const saved = localStorage.getItem("cv-config");
+      return saved ? JSON.parse(saved) : {};
     } catch {
-        return {};
-    } 
+      return {};
+    }
   });
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [allValues, setAllValues] = useState<Record<string, Record<string, number>>>({});
 
   const open = (id: string, type: string, socket: WebSocket) => {
     if (!allValues[id]) {
-        const defaults: Record<string, number> = {};
-        (SETTINGS[type] ?? []).forEach(s => { defaults[s.key] = s.default; });
-        setAllValues(prev => ({ ...prev, [id]: defaults }))
+      const defaults: Record<string, number> = {};
+      (SETTINGS[type] ?? []).forEach((s) => {
+        defaults[s.key] = s.default;
+      });
+      setAllValues((prev) => ({ ...prev, [id]: defaults }));
     }
     setOpenCam({ id, type });
     setWs(socket);
@@ -67,9 +95,9 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
   const update = (key: string, val: number) => {
     if (!openCam) return;
     const newVals = { ...allValues[openCam.id], [key]: val };
-    setAllValues(prev => ({ ...prev, [openCam.id]: newVals }));
+    setAllValues((prev) => ({ ...prev, [openCam.id]: newVals }));
     if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(newVals));
+      ws.send(JSON.stringify(newVals));
     }
   };
 
@@ -120,11 +148,13 @@ export function SettingsSidePanel() {
           <p className="text-xs text-muted-foreground italic">No parameters for this view.</p>
         ) : (
           <div className="flex flex-col gap-6">
-            {params.map(s => (
+            {params.map((s) => (
               <div key={s.key}>
                 <div className="flex justify-between items-center mb-2">
                   <label className="font-mono text-xs text-muted-foreground">{s.label}</label>
-                  <span className="font-mono text-xs font-semibold text-foreground">{values[s.key]}</span>
+                  <span className="font-mono text-xs font-semibold text-foreground">
+                    {values[s.key]}
+                  </span>
                 </div>
                 <input
                   type="range"
@@ -132,7 +162,7 @@ export function SettingsSidePanel() {
                   max={s.max}
                   step={s.step}
                   value={values[s.key]}
-                  onChange={e => update(s.key, Number(e.target.value))}
+                  onChange={(e) => update(s.key, Number(e.target.value))}
                   className="w-full accent-white"
                 />
                 <div className="flex justify-between mt-1">

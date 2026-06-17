@@ -47,6 +47,14 @@ export const SETTINGS: Record<string, SettingParam[]> = {
       step: 1,
     },
   ],
+  sfm: [
+    { key: "maxCorners", label: "Max feature points", min: 10, max: 500, default: 150, step: 10 },
+    { key: "qualityLevel", label: "Corner quality", min: 0.1, max: 0.9, default: 0.3, step: 0.05 },
+    { key: "minDistance", label: "Min point distance", min: 1, max: 30, default: 7, step: 1 },
+    { key: "arrowScale", label: "Arrow scale", min: 0.5, max: 5.0, default: 1.0, step: 0.1 },
+    { key: "pointSize", label: "Point size", min: 1, max: 10, default: 3, step: 1 },
+    { key: "hue", label: "Arrow color", min: 0, max: 360, default: 0, step: 1 },
+  ],
 };
 
 type OpenCam = { id: string; type: string } | null;
@@ -152,23 +160,60 @@ export function SettingsSidePanel() {
               <div key={s.key}>
                 <div className="flex justify-between items-center mb-2">
                   <label className="font-mono text-xs text-muted-foreground">{s.label}</label>
-                  <span className="font-mono text-xs font-semibold text-foreground">
-                    {values[s.key]}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {s.key === "hue" && (
+                      <div
+                        className="w-3 h-3 rounded-full border border-white/20"
+                        style={{ background: `hsl(${values[s.key]}, 100%, 50%)` }}
+                      />
+                    )}
+                    {s.key !== "hue" && (
+                      <span className="font-mono text-xs font-semibold text-foreground">
+                        {values[s.key]}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min={s.min}
-                  max={s.max}
-                  step={s.step}
-                  value={values[s.key]}
-                  onChange={(e) => update(s.key, Number(e.target.value))}
-                  className="w-full accent-white"
-                />
-                <div className="flex justify-between mt-1">
-                  <span className="font-mono text-[9px] text-muted-foreground">{s.min}</span>
-                  <span className="font-mono text-[9px] text-muted-foreground">{s.max}</span>
-                </div>
+                {s.key === "hue" ? (
+                  <>
+                    <input
+                      type="range"
+                      min={s.min}
+                      max={s.max}
+                      step={s.step}
+                      value={values[s.key]}
+                      onChange={(e) => update(s.key, Number(e.target.value))}
+                      className={s.key === "hue" ? "w-full appearance-none cursor-pointer" : "w-full accent-white"}
+                      style={s.key === "hue" ? {
+                        background: "linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
+                        borderRadius: "9999px",
+                        height: "8px",
+                        outline: "none",
+                        border: "none",
+                      } : undefined}
+                    />
+                    <div className="flex justify-between mt-1">
+                      <span className="font-mono text-[9px] text-muted-foreground">{s.min}</span>
+                      <span className="font-mono text-[9px] text-muted-foreground">{s.max}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="range"
+                      min={s.min}
+                      max={s.max}
+                      step={s.step}
+                      value={values[s.key]}
+                      onChange={(e) => update(s.key, Number(e.target.value))}
+                      className="w-full accent-white"
+                    />
+                    <div className="flex justify-between mt-1">
+                      <span className="font-mono text-[9px] text-muted-foreground">{s.min}</span>
+                      <span className="font-mono text-[9px] text-muted-foreground">{s.max}</span>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>

@@ -36,8 +36,8 @@ const CAMS = [
     id: "CAM-05",
     label: "East Corridor",
     loc: "Sector E · L3",
-    url: "ws://127.0.0.1:8000/regular",
-    type: "regular",
+    url: "ws://127.0.0.1:8000/sfm",
+    type: "sfm",
   },
   {
     id: "CAM-06",
@@ -110,7 +110,7 @@ const SETTINGS: Record<
       min: 0.1,
       max: 0.95,
       default: 0.4,
-      step: 0.05
+      step: 0.05,
     },
     {
       key: "box_thickness",
@@ -118,7 +118,7 @@ const SETTINGS: Record<
       min: 1,
       max: 6,
       default: 2,
-      step: 1
+      step: 1,
     },
     {
       key: "max_detections",
@@ -126,9 +126,17 @@ const SETTINGS: Record<
       min: 1,
       max: 50,
       default: 20,
-      step: 1
-    }
-  ]
+      step: 1,
+    },
+  ],
+  sfm: [
+    { key: "maxCorners", label: "Max feature points", min: 10, max: 500, default: 150, step: 10 },
+    { key: "qualityLevel", label: "Corner quality", min: 0.1, max: 0.9, default: 0.3, step: 0.05 },
+    { key: "minDistance", label: "Min point distance", min: 1, max: 30, default: 7, step: 1 },
+    { key: "arrowScale", label: "Arrow scale", min: 0.5, max: 5.0, default: 1.0, step: 0.1 },
+    { key: "pointSize", label: "Point size", min: 1, max: 10, default: 3, step: 1 },
+    { key: "hue", label: "Arrow color", min: 0, max: 360, default: 0, step: 1 },
+  ],
 };
 
 type Config = Record<string, Record<string, number>>;
@@ -155,8 +163,13 @@ export function CameraGrid() {
 
   return (
     <div className="flex gap-4 transition-all duration-300">
-      <div style={{ gridTemplateColumns: activePanel !== null ? "repeat(2, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))" }}
-  className="grid gap-5 md:gap-6 transition-all duration-300 flex-1 min-w-0">
+      <div
+        style={{
+          gridTemplateColumns:
+            activePanel !== null ? "repeat(2, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
+        }}
+        className="grid gap-5 md:gap-6 transition-all duration-300 flex-1 min-w-0"
+      >
         {CAMS.map((c, i) => {
           return (
             <div
@@ -164,10 +177,18 @@ export function CameraGrid() {
               className="group relative overflow-hidden camera-frame hover:camera-frame-hover transition-transform hover:-translate-y-0.5"
             >
               <div className="relative aspect-16/10 overflow-hidden">
-                <VideoPanel url={c.url} onSocket={(ws) => { socketRefs.current[c.id] = ws; } } />
+                <VideoPanel
+                  url={c.url}
+                  onSocket={(ws) => {
+                    socketRefs.current[c.id] = ws;
+                  }}
+                />
                 <div
                   className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay"
-              style={{ background: "repeating-linear-gradient(0deg, rgba(255,255,255,0.15) 0 1px, transparent 1px 3px)" }}
+                  style={{
+                    background:
+                      "repeating-linear-gradient(0deg, rgba(255,255,255,0.15) 0 1px, transparent 1px 3px)",
+                  }}
                 />
                 <div className="absolute top-0 left-0 right-0 p-3 flex items-center justify-between font-mono text-[11px]">
                   <div className="flex items-center gap-2">
@@ -192,9 +213,7 @@ export function CameraGrid() {
 
                 <div className="absolute bottom-0 left-0 right-0 p-3 flex items-end justify-between font-mono text-[11px] bg-linear-to-t from-black/70 to-transparent">
                   <div className="text-white">
-                    <div className="text-sm font-semibold tracking-tight">
-                      {c.label}
-                    </div>
+                    <div className="text-sm font-semibold tracking-tight">{c.label}</div>
                     <div className="text-white/70">{c.loc}</div>
                   </div>
                   <div className="text-white/80">

@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 import asyncio
 import cv2
 import json
+import numpy as np
+import colorsys
 
 from ultralytics import YOLO
 
@@ -13,9 +15,16 @@ latest_frame = None
 canny_config = {"threshold1": 100, "threshold2": 200}
 motion_config = {"varThreshold": 50, "history": 500, "dilateIter": 2}
 yolo_config = {"conf_threshold": 0.4, "box_thickness": 2, "max_detections": 20}
+sfm_config = {"maxCorners": 150, "qualityLevel": 0.3, "minDistance": 7, "arrowScale": 1.0, "pointSize": 3, "hue": 0}
+sfm_config = {"maxCorners": 150, "qualityLevel": 0.3, "minDistance": 7, "arrowScale": 1.0, "pointSize": 3, "hue": 0}
+
 
 # models
 model = YOLO("yolo26n.pt")
+
+def hue_to_bgr(hue): # convert 0-360 to 0-1 for colorsys
+    r, g, b = colorsys.hsv_to_rgb(hue / 360.0, 1.0, 1.0)
+    return (int(b * 255), int(g * 255), int(r * 255))
 
 async def capture_loop():
     global latest_frame
@@ -193,7 +202,7 @@ async def yolo_feed(websocket: WebSocket):
             try:
                 data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
                 incoming = json.loads(data)
-                # yolo_config.update(incoming)
+                yolo_config.update(incoming)
             except asyncio.TimeoutError:
                 continue
             except Exception as e:
@@ -204,3 +213,98 @@ async def yolo_feed(websocket: WebSocket):
         await asyncio.gather(send_frames(), recv_config())
     except WebSocketDisconnect:
         print("YOLO Cam Disconnected")
+
+@app.websocket("/sfm")
+async def sfm_feed(websocket: WebSocket):
+    await websocket.accept()
+    stop = asyncio.Event()
+
+    prev_frame = None
+    prev_points = None
+    frame_count = 0 # num. frames to refresh points
+
+    async def send_frames():
+        nonlocal prev_frame, prev_points, frame_count
+        while not stop.is_set():
+            if latest_frame is None:
+                await asyncio.sleep(0.01)
+                continue
+            try:
+                frame = latest_frame.copy()
+                curr_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                frame_count += 1
+
+                if prev_frame is None or prev_points is None or frame_count % 60 == 0:
+                    prev_points = cv2.goodFeaturesToTrack(
+                        curr_frame, 
+                        maxCorners=sfm_config["maxCorners"], # max feature pts to track
+                        qualityLevel=sfm_config["qualityLevel"], # quality of corners
+                        minDistance=sfm_config["minDistance"], # min pixel distance between features
+                        blockSize=7
+                    )
+                    prev_frame = curr_frame.copy()
+                    await asyncio.sleep(0.033)
+                    continue
+                
+                if prev_points is None or len(prev_points) == 0:
+                    await asyncio.sleep(0.033)
+                    continue
+
+                prev_points = np.array(prev_points, dtype=np.float32).reshape(-1, 1, 2)
+                    
+                curr_points, status, _ = cv2.calcOpticalFlowPyrLK( # type: ignore
+                    prev_frame,
+                    curr_frame,
+                    prev_points,
+                    np.array([]),
+                    winSize=(15, 15),
+                    maxLevel=2, # handles fast motion
+                    criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)
+                )
+
+                if curr_points is not None and status is not None:
+                    # Filtering successfully tracked points
+                    good_new = curr_points[status == 1]
+                    good_old = prev_points[status == 1]
+                    color = hue_to_bgr(sfm_config["hue"])
+
+                    # motion vectors
+                    for new, old in zip(good_new, good_old):
+                        x_new, y_new = map(int, new.ravel())
+                        x_old, y_old = map(int, old.ravel())
+
+                        dx = int((x_new - x_old) * sfm_config["arrowScale"])
+                        dy = int((y_new - y_old) * sfm_config["arrowScale"])
+                        x_end = x_old + dx
+                        y_end = y_old + dy
+
+                        # drawing feature point tracking
+                        cv2.arrowedLine(frame, (x_old, y_old), (x_end, y_end), color, 1, tipLength=0.3)
+                        cv2.circle(frame, (x_new, y_new), sfm_config["pointSize"], color, -1)
+                    
+                    prev_frame = curr_frame.copy()
+                    prev_points = good_new.reshape(-1, 1, 2) if curr_points is not None and status is not None and len(good_new) > 0 else None
+
+                _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                await websocket.send_bytes(buffer.tobytes())
+            except Exception:
+                stop.set()
+                break
+            await asyncio.sleep(0.033)
+    
+    async def recv_config():
+        while not stop.is_set():
+            try:
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
+                incoming = json.loads(data)
+                sfm_config.update(incoming)
+            except asyncio.TimeoutError:
+                continue
+            except Exception:
+                stop.set()
+                break
+    
+    try:
+        await asyncio.gather(send_frames(), recv_config())
+    except WebSocketDisconnect:
+        print("SFM Cam Disconnected")

@@ -43,8 +43,8 @@ const CAMS = [
     id: "CAM-06",
     label: "Server Vault",
     loc: "Sector F · B2",
-    url: "ws://127.0.0.1:8000/regular",
-    type: "regular",
+    url: "ws://127.0.0.1:8000/stvis",
+    type: "stvis",
   },
 ];
 const SETTINGS: Record<
@@ -136,6 +136,12 @@ const SETTINGS: Record<
     { key: "arrowScale", label: "Arrow scale", min: 0.5, max: 5.0, default: 1.0, step: 0.1 },
     { key: "pointSize", label: "Point size", min: 1, max: 10, default: 3, step: 1 },
     { key: "hue", label: "Arrow color", min: 0, max: 360, default: 0, step: 1 },
+  ],
+  stvis: [
+    { key: "colormap", label: "Color map", min: 0, max: 20, default: 8, step: 1 },
+    { key: "contrast", label: "Depth contrast", min: 0.5, max: 3.0, default: 1.0, step: 0.1 },
+    { key: "invert", label: "Invert depth", min: 0, max: 1, default: 0, step: 1 },
+    { key: "smoothing", label: "Smoothing", min: 0, max: 15, default: 0, step: 1 },
   ],
 };
 

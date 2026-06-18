@@ -55,6 +55,12 @@ export const SETTINGS: Record<string, SettingParam[]> = {
     { key: "pointSize", label: "Point size", min: 1, max: 10, default: 3, step: 1 },
     { key: "hue", label: "Arrow color", min: 0, max: 360, default: 0, step: 1 },
   ],
+  stvis: [
+    { key: "colormap", label: "Color map", min: 0, max: 20, default: 8, step: 1 },
+    { key: "contrast", label: "Depth contrast", min: 0.5, max: 3.0, default: 1.0, step: 0.1 },
+    { key: "invert", label: "Invert depth", min: 0, max: 1, default: 0, step: 1 },
+    { key: "smoothing", label: "Smoothing", min: 0, max: 15, default: 0, step: 1 },
+  ],
 };
 
 type OpenCam = { id: string; type: string } | null;
@@ -183,14 +189,23 @@ export function SettingsSidePanel() {
                       step={s.step}
                       value={values[s.key]}
                       onChange={(e) => update(s.key, Number(e.target.value))}
-                      className={s.key === "hue" ? "w-full appearance-none cursor-pointer" : "w-full accent-white"}
-                      style={s.key === "hue" ? {
-                        background: "linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
-                        borderRadius: "9999px",
-                        height: "8px",
-                        outline: "none",
-                        border: "none",
-                      } : undefined}
+                      className={
+                        s.key === "hue"
+                          ? "w-full appearance-none cursor-pointer"
+                          : "w-full accent-white"
+                      }
+                      style={
+                        s.key === "hue"
+                          ? {
+                              background:
+                                "linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
+                              borderRadius: "9999px",
+                              height: "8px",
+                              outline: "none",
+                              border: "none",
+                            }
+                          : undefined
+                      }
                     />
                     <div className="flex justify-between mt-1">
                       <span className="font-mono text-[9px] text-muted-foreground">{s.min}</span>

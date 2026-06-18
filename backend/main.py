@@ -6,6 +6,8 @@ import cv2
 import json
 import numpy as np
 import colorsys
+import torch
+from torchvision.transforms import transforms
 
 from ultralytics import YOLO
 
@@ -16,11 +18,18 @@ canny_config = {"threshold1": 100, "threshold2": 200}
 motion_config = {"varThreshold": 50, "history": 500, "dilateIter": 2}
 yolo_config = {"conf_threshold": 0.4, "box_thickness": 2, "max_detections": 20}
 sfm_config = {"maxCorners": 150, "qualityLevel": 0.3, "minDistance": 7, "arrowScale": 1.0, "pointSize": 3, "hue": 0}
-sfm_config = {"maxCorners": 150, "qualityLevel": 0.3, "minDistance": 7, "arrowScale": 1.0, "pointSize": 3, "hue": 0}
+sv_config = {"colormap": 8, "contrast": 1.0, "invert": 0, "smoothing": 0}
 
 
 # models
 model = YOLO("yolo26n.pt")
+midas = torch.hub.load("intel-isl/MiDaS", "MiDaS_small")
+# compatible for M4 GPU
+midas.to("mps") # type: ignore 
+midas.eval() # type: ignore
+
+midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
+midas_transform = midas_transforms.small_transform # type: ignore
 
 def hue_to_bgr(hue): # convert 0-360 to 0-1 for colorsys
     r, g, b = colorsys.hsv_to_rgb(hue / 360.0, 1.0, 1.0)
@@ -100,7 +109,7 @@ async def canny_feed(websocket: WebSocket):
                 canny_config.update(incoming)
             except asyncio.TimeoutError:
                 continue
-            except Exception as e:
+            except Exception:
                 stop.set()
                 break
     try:
@@ -146,7 +155,7 @@ async def mog2_feed(websocket: WebSocket):
                 motion_config.update(incoming)
             except asyncio.TimeoutError:
                 continue
-            except Exception as e:
+            except Exception:
                 stop.set()
                 break
     try:
@@ -205,7 +214,7 @@ async def yolo_feed(websocket: WebSocket):
                 yolo_config.update(incoming)
             except asyncio.TimeoutError:
                 continue
-            except Exception as e:
+            except Exception:
                 stop.set()
                 break
     
@@ -308,3 +317,65 @@ async def sfm_feed(websocket: WebSocket):
         await asyncio.gather(send_frames(), recv_config())
     except WebSocketDisconnect:
         print("SFM Cam Disconnected")
+
+@app.websocket("/stvis")
+async def stereo_vis_feed(websocket: WebSocket):
+    await websocket.accept()
+    stop = asyncio.Event()
+    async def send_frames():
+        while not stop.is_set():
+            if latest_frame is None:
+                await asyncio.sleep(0.01)
+                continue
+            try:
+                frame = latest_frame.copy()
+                img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) # MiDaS takes in RGB
+                # MiDaS transforms
+                input_batch = midas_transform(img_rgb).to("mps")
+                with torch.no_grad():
+                    prediction = midas(input_batch) # type: ignore
+                    prediction = torch.nn.functional.interpolate(
+                        prediction.unsqueeze(1),
+                        size=img_rgb.shape[:2],
+                        mode="bicubic",
+                        align_corners=False
+                    ).squeeze()
+
+                depth_map = prediction.cpu().numpy()
+                depth_map = depth_map * sv_config.get("contrast", 1.0)
+                # normalization
+                depth_min = depth_map.min()
+                depth_max = depth_map.max()
+                depth_normalized = (255 * (depth_map - depth_min) / (depth_max - depth_min)).astype("uint8")
+                if sv_config.get("invert", 0):
+                    depth_normalized = 255 - depth_normalized
+                depth_colored = cv2.applyColorMap(depth_normalized, cv2.COLORMAP_INFERNO)
+                blur = int(sv_config.get("smoothing", 0))
+                if blur > 0:
+                    k = blur if blur % 2 == 1 else blur + 1 # odd kernel size
+                    depth_colored = cv2.GaussianBlur(depth_colored, (k, k), 0)
+
+
+                _, buffer = cv2.imencode('.jpg', depth_colored, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                await websocket.send_bytes(buffer.tobytes())
+            except Exception:
+                stop.set()
+                break
+            await asyncio.sleep(0.033)
+    
+    async def recv_config():
+        while not stop.is_set():
+            try:
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
+                incoming = json.loads(data)
+                sv_config.update(incoming)
+            except asyncio.TimeoutError:
+                continue
+            except Exception:
+                stop.set()
+                break
+    
+    try:
+        await asyncio.gather(send_frames(), recv_config())
+    except WebSocketDisconnect:
+        print("Stereo Vision Cam Disconnected")

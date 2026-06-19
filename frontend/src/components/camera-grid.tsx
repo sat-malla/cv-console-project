@@ -58,7 +58,14 @@ const SETTINGS: Record<
     step: number;
   }[]
 > = {
-  regular: [],
+  regular: [
+    { key: "brightness", label: "Brightness", min: -100, max: 100, default: 0, step: 1 },
+    { key: "contrast", label: "Contrast", min: 0.3, max: 3.0, default: 1.0, step: 0.1 },
+    { key: "temperature", label: "Temperature", min: -100, max: 100, default: 0, step: 1 },
+    { key: "tint", label: "Tint", min: -100, max: 100, default: 0, step: 1 },
+    { key: "exposure", label: "Exposure", min: -100, max: 100, default: 0, step: 1 },
+    { key: "hue", label: "Hue", min: 0, max: 179, default: 0, step: 1 },
+  ],
   canny: [
     {
       key: "threshold1",
@@ -169,13 +176,7 @@ export function CameraGrid() {
 
   return (
     <div className="flex gap-4 transition-all duration-300">
-      <div
-        style={{
-          gridTemplateColumns:
-            activePanel !== null ? "repeat(2, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
-        }}
-        className="grid gap-5 md:gap-6 transition-all duration-300 flex-1 min-w-0"
-      >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 transition-all duration-300 min-w-0 w-full">
         {CAMS.map((c, i) => {
           return (
             <div

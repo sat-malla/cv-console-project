@@ -11,7 +11,14 @@ type SettingParam = {
 };
 
 export const SETTINGS: Record<string, SettingParam[]> = {
-  regular: [],
+  regular: [
+    { key: "brightness", label: "Brightness", min: -100, max: 100, default: 0, step: 1 },
+    { key: "contrast", label: "Contrast", min: 0.3, max: 3.0, default: 1.0, step: 0.1 },
+    { key: "temperature", label: "Temperature", min: -100, max: 100, default: 0, step: 1 },
+    { key: "tint", label: "Tint", min: -100, max: 100, default: 0, step: 1 },
+    { key: "exposure", label: "Exposure", min: -100, max: 100, default: 0, step: 1 },
+    { key: "hue", label: "Hue", min: 0, max: 179, default: 0, step: 1 },
+  ],
   canny: [
     { key: "threshold1", label: "Lower threshold", min: 0, max: 255, default: 100, step: 1 },
     { key: "threshold2", label: "Upper threshold", min: 0, max: 255, default: 200, step: 1 },
@@ -72,6 +79,7 @@ type Ctx = {
   open: (id: string, type: string, ws: WebSocket) => void;
   close: () => void;
   update: (key: string, val: number) => void;
+  reset: () => void;
 };
 
 const SettingsPanelCtx = createContext<Ctx | null>(null);
@@ -115,8 +123,20 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const reset = () => {
+    if (!openCam) return;
+    const defaults: Record<string, number> = {};
+    (SETTINGS[openCam.type] ?? []).forEach((s) => {
+      defaults[s.key] = s.default;
+    });
+    setAllValues((prev) => ({ ...prev, [openCam.id]: defaults }));
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(defaults));
+    }
+  };
+
   return (
-    <SettingsPanelCtx.Provider value={{ openCam, allValues, ws, open, close, update }}>
+    <SettingsPanelCtx.Provider value={{ openCam, allValues, ws, open, close, update, reset }}>
       {children}
     </SettingsPanelCtx.Provider>
   );
@@ -129,14 +149,18 @@ export function useSettingsPanel() {
 }
 
 export function SettingsSidePanel() {
-  const { openCam, allValues, ws, close, update } = useSettingsPanel();
+  const { openCam, allValues, ws, close, update, reset } = useSettingsPanel();
   const values = allValues[openCam?.id ?? ""] ?? {};
   if (!openCam) return null;
 
   const params = SETTINGS[openCam.type] ?? [];
   return (
     <aside
-      className="w-72 h-250 shrink-0 border-l border-border bg-card flex flex-col"
+      className="w-full sm:w-80 lg:w-96 my-auto max-h-[calc(100vh-2rem)] shrink-0 rounded-2xl bg-card flex flex-col overflow-hidden transition-all duration-300"
+      style={{
+        border: "1px solid #2563eb",
+        boxShadow: "0 0 0 1px #2563eb33 inset, 0 0 18px -4px #2563eb, 0 0 40px -16px #2563eb",
+      }}
       aria-label={`${openCam.id} settings`}
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
@@ -233,6 +257,16 @@ export function SettingsSidePanel() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="border-t border-border px-4 py-3">
+        <button
+          onClick={reset}
+          disabled={params.length === 0}
+          className="w-full px-3 py-2 bg-accent hover:bg-accent/80 disabled:bg-accent/50 disabled:cursor-not-allowed text-foreground rounded text-xs font-mono font-semibold transition-colors"
+        >
+          Reset to defaults
+        </button>
       </div>
     </aside>
   );

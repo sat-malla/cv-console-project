@@ -176,9 +176,15 @@ function CameraModal() {
               <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1">
                 <div className="flex items-center justify-between gap-3 m-3 mb-1">
                   <TabsList className="grid grid-cols-3">
-                    <TabsTrigger value="settings"><Settings className="h-5.5 w-6.5" /></TabsTrigger>
-                    <TabsTrigger value="terminal"><SquareTerminal className="h-5.5 w-6.5" /></TabsTrigger>
-                    <TabsTrigger value="information"><Info className="h-5.5 w-6.5" /></TabsTrigger>
+                    <TabsTrigger value="settings">
+                      <Settings className="h-5.5 w-6.5" />
+                    </TabsTrigger>
+                    <TabsTrigger value="terminal">
+                      <SquareTerminal className="h-5.5 w-6.5" />
+                    </TabsTrigger>
+                    <TabsTrigger value="information">
+                      <Info className="h-5.5 w-6.5" />
+                    </TabsTrigger>
                   </TabsList>
                 </div>
                 <div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0">
@@ -246,7 +252,25 @@ function CameraModal() {
                     )}
                   </TabsContent>
                   <TabsContent value="terminal" className="mt-2" />
-                  <TabsContent value="information" className="mt-2" />
+                  <TabsContent value="information" className="mt-2">
+                    <div className="flex flex-col gap-3">
+                      <h1 className="font-bold" style={{ fontSize: "20px" }}>Information</h1>
+                      <p>
+                        Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium
+                        doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore
+                        veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim
+                        ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia
+                        consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque
+                        porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur,
+                        adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et
+                        dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis
+                        nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid
+                        ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea
+                        voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem
+                        eum fugiat quo voluptas nulla pariatur?
+                      </p>
+                    </div>
+                  </TabsContent>
                 </div>
                 {activeTab === "settings" && params.length > 0 && (
                   <div className="border-t border-border px-4 py-3 shrink-0">

@@ -15,7 +15,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { NavBar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { AgentBot } from "@/components/agent-bot";
-import { SettingsPanelProvider, SettingsSidePanel } from "@/components/settings-panel";
+import { SettingsPanelProvider } from "@/components/settings-panel";
 
 function NotFoundComponent() {
   return (
@@ -122,7 +122,6 @@ function RootComponent() {
               <main className="flex-1 min-w-0">
                 <Outlet />
               </main>
-              <SettingsSidePanel />
             </div>
             <Footer />
             <AgentBot />

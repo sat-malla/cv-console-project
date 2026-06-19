@@ -1,5 +1,8 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { Settings, SquareTerminal, Info } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import VideoPanel from "./video-panel";
 
 type SettingParam = {
   key: string;
@@ -70,13 +73,13 @@ export const SETTINGS: Record<string, SettingParam[]> = {
   ],
 };
 
-type OpenCam = { id: string; type: string } | null;
+type OpenCam = { id: string; type: string; label: string; url: string } | null;
 
 type Ctx = {
   openCam: OpenCam;
   allValues: Record<string, Record<string, number>>;
   ws: WebSocket | null;
-  open: (id: string, type: string, ws: WebSocket) => void;
+  open: (id: string, type: string, label: string, url: string, ws: WebSocket) => void;
   close: () => void;
   update: (key: string, val: number) => void;
   reset: () => void;
@@ -86,18 +89,10 @@ const SettingsPanelCtx = createContext<Ctx | null>(null);
 
 export function SettingsPanelProvider({ children }: { children: ReactNode }) {
   const [openCam, setOpenCam] = useState<OpenCam>(null);
-  const [values, setValues] = useState<Record<string, number>>(() => {
-    try {
-      const saved = localStorage.getItem("cv-config");
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [allValues, setAllValues] = useState<Record<string, Record<string, number>>>({});
 
-  const open = (id: string, type: string, socket: WebSocket) => {
+  const open = (id: string, type: string, label: string, url: string, socket: WebSocket) => {
     if (!allValues[id]) {
       const defaults: Record<string, number> = {};
       (SETTINGS[type] ?? []).forEach((s) => {
@@ -105,7 +100,7 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
       });
       setAllValues((prev) => ({ ...prev, [id]: defaults }));
     }
-    setOpenCam({ id, type });
+    setOpenCam({ id, type, label, url });
     setWs(socket);
   };
 
@@ -138,6 +133,7 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
   return (
     <SettingsPanelCtx.Provider value={{ openCam, allValues, ws, open, close, update, reset }}>
       {children}
+      <CameraModal />
     </SettingsPanelCtx.Provider>
   );
 }
@@ -148,126 +144,125 @@ export function useSettingsPanel() {
   return ctx;
 }
 
-export function SettingsSidePanel() {
-  const { openCam, allValues, ws, close, update, reset } = useSettingsPanel();
+function CameraModal() {
+  const { openCam, allValues, close, update, reset } = useSettingsPanel();
+  const isOpen = !!openCam;
   const values = allValues[openCam?.id ?? ""] ?? {};
-  if (!openCam) return null;
+  const params = openCam ? (SETTINGS[openCam.type] ?? []) : [];
+  const [activeTab, setActiveTab] = useState("settings");
 
-  const params = SETTINGS[openCam.type] ?? [];
   return (
-    <aside
-      className="w-full sm:w-80 lg:w-96 my-auto max-h-[calc(100vh-2rem)] shrink-0 rounded-2xl bg-card flex flex-col overflow-hidden transition-all duration-300"
-      style={{
-        border: "1px solid #2563eb",
-        boxShadow: "0 0 0 1px #2563eb33 inset, 0 0 18px -4px #2563eb, 0 0 40px -16px #2563eb",
+    <Dialog
+      open={isOpen}
+      onOpenChange={(o) => {
+        if (!o) close();
       }}
-      aria-label={`${openCam.id} settings`}
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <div>
-          <div className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase mb-0.5">
-            Panel settings
-          </div>
-          <div className="font-mono text-xs font-semibold text-foreground">
-            {openCam.id} · {openCam.type.charAt(0).toUpperCase() + openCam.type.slice(1)}
-          </div>
-        </div>
-        <button
-          onClick={close}
-          className="rounded-md p-1.5 hover:bg-accent transition-colors"
-          aria-label="Close settings panel"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4">
-        {params.length === 0 ? (
-          <p className="text-xs text-muted-foreground italic">No parameters for this view.</p>
-        ) : (
-          <div className="flex flex-col gap-6">
-            {params.map((s) => (
-              <div key={s.key}>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="font-mono text-xs text-muted-foreground">{s.label}</label>
-                  <div className="flex items-center gap-2">
-                    {s.key === "hue" && (
-                      <div
-                        className="w-3 h-3 rounded-full border border-white/20"
-                        style={{ background: `hsl(${values[s.key]}, 100%, 50%)` }}
-                      />
-                    )}
-                    {s.key !== "hue" && (
-                      <span className="font-mono text-xs font-semibold text-foreground">
-                        {values[s.key]}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {s.key === "hue" ? (
-                  <>
-                    <input
-                      type="range"
-                      min={s.min}
-                      max={s.max}
-                      step={s.step}
-                      value={values[s.key]}
-                      onChange={(e) => update(s.key, Number(e.target.value))}
-                      className={
-                        s.key === "hue"
-                          ? "w-full appearance-none cursor-pointer"
-                          : "w-full accent-white"
-                      }
-                      style={
-                        s.key === "hue"
-                          ? {
-                              background:
-                                "linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
-                              borderRadius: "9999px",
-                              height: "8px",
-                              outline: "none",
-                              border: "none",
-                            }
-                          : undefined
-                      }
-                    />
-                    <div className="flex justify-between mt-1">
-                      <span className="font-mono text-[9px] text-muted-foreground">{s.min}</span>
-                      <span className="font-mono text-[9px] text-muted-foreground">{s.max}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <input
-                      type="range"
-                      min={s.min}
-                      max={s.max}
-                      step={s.step}
-                      value={values[s.key]}
-                      onChange={(e) => update(s.key, Number(e.target.value))}
-                      className="w-full accent-white"
-                    />
-                    <div className="flex justify-between mt-1">
-                      <span className="font-mono text-[9px] text-muted-foreground">{s.min}</span>
-                      <span className="font-mono text-[9px] text-muted-foreground">{s.max}</span>
-                    </div>
-                  </>
-                )}
+      <DialogContent className="max-w-6xl w-[95vw] h-[80vh] p-0 overflow-hidden gap-0">
+        <DialogTitle className="sr-only">{openCam?.id ?? "Camera"} controls</DialogTitle>
+        <DialogDescription className="sr-only">
+          Expanded camera view with adjustable detection and image parameters.
+        </DialogDescription>
+        {openCam && (
+          <div className="flex flex-col md:flex-row max-h-[85vh]">
+            <div className="flex-1 bg-black relative">
+              <div className="absolute top-3 left-3 px-2 py-0.5 rounded bg-black/60 text-white font-mono text-[11px] tracking-widest">
+                {openCam.id} · {openCam.label}
               </div>
-            ))}
+              <VideoPanel url={openCam.url} />
+            </div>
+
+            <div className="w-full md:w-95 shrink-0 border-t md:border-t-0 md:border-l border-border bg-card flex flex-col">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1">
+                <div className="flex items-center justify-between gap-3 m-3 mb-1">
+                  <TabsList className="grid grid-cols-3">
+                    <TabsTrigger value="settings"><Settings className="h-5.5 w-6.5" /></TabsTrigger>
+                    <TabsTrigger value="terminal"><SquareTerminal className="h-5.5 w-6.5" /></TabsTrigger>
+                    <TabsTrigger value="information"><Info className="h-5.5 w-6.5" /></TabsTrigger>
+                  </TabsList>
+                </div>
+                <div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0">
+                  <TabsContent value="settings" className="mt-2">
+                    {params.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">
+                        No parameters for this view.
+                      </p>
+                    ) : (
+                      <div className="flex flex-col gap-6">
+                        {params.map((s) => (
+                          <div key={s.key}>
+                            <div className="flex justify-between items-center mb-2">
+                              <label className="font-mono text-xs text-muted-foreground">
+                                {s.label}
+                              </label>
+                              <div className="flex items-center gap-2">
+                                {s.key === "hue" && (
+                                  <div
+                                    className="w-3 h-3 rounded-full border border-white/20"
+                                    style={{ background: `hsl(${values[s.key]}, 100%, 50%)` }}
+                                  />
+                                )}
+                                <span className="font-mono text-xs font-semibold text-foreground">
+                                  {values[s.key]}
+                                </span>
+                              </div>
+                            </div>
+                            <input
+                              type="range"
+                              min={s.min}
+                              max={s.max}
+                              step={s.step}
+                              value={values[s.key]}
+                              onChange={(e) => update(s.key, Number(e.target.value))}
+                              className={
+                                s.key === "hue"
+                                  ? "w-full appearance-none cursor-pointer"
+                                  : "w-full accent-white"
+                              }
+                              style={
+                                s.key === "hue"
+                                  ? {
+                                      background:
+                                        "linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
+                                      borderRadius: "9999px",
+                                      height: "8px",
+                                      outline: "none",
+                                      border: "none",
+                                    }
+                                  : undefined
+                              }
+                            />
+                            <div className="flex justify-between mt-1">
+                              <span className="font-mono text-[9px] text-muted-foreground">
+                                {s.min}
+                              </span>
+                              <span className="font-mono text-[9px] text-muted-foreground">
+                                {s.max}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                  <TabsContent value="terminal" className="mt-2" />
+                  <TabsContent value="information" className="mt-2" />
+                </div>
+                {activeTab === "settings" && params.length > 0 && (
+                  <div className="border-t border-border px-4 py-3 shrink-0">
+                    <button
+                      onClick={reset}
+                      className="w-full px-3 py-2 bg-accent hover:bg-accent/80 text-foreground rounded text-xs font-mono font-semibold transition-colors"
+                    >
+                      Reset to defaults
+                    </button>
+                  </div>
+                )}
+              </Tabs>
+            </div>
           </div>
         )}
-      </div>
-
-      <div className="border-t border-border px-4 py-3">
-        <button
-          onClick={reset}
-          disabled={params.length === 0}
-          className="w-full px-3 py-2 bg-accent hover:bg-accent/80 disabled:bg-accent/50 disabled:cursor-not-allowed text-foreground rounded text-xs font-mono font-semibold transition-colors"
-        >
-          Reset to defaults
-        </button>
-      </div>
-    </aside>
+      </DialogContent>
+    </Dialog>
   );
 }

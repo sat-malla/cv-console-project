@@ -2,6 +2,7 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 import { Settings, SquareTerminal, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { LiveTimestamp } from "./camera-grid";
 import VideoPanel from "./video-panel";
 
 type SettingParam = {
@@ -168,6 +169,11 @@ function CameraModal() {
             <div className="flex-1 bg-black relative">
               <div className="absolute top-3 left-3 px-2 py-0.5 rounded bg-black/60 text-white font-mono text-[11px] tracking-widest">
                 {openCam.id} · {openCam.label}
+              </div>
+              <div className="absolute top-3 right-3 px-2 py-0.5 rounded bg-black/60 text-white font-mono text-[11px] tracking-widest">
+                <div className="text-white/80">
+                    <LiveTimestamp />
+                  </div>
               </div>
               <VideoPanel url={openCam.url} />
             </div>

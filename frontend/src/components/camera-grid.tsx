@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import VideoPanel from "./video-panel.tsx";
 import { useSettingsPanel } from "./settings-panel.tsx";
 import { SquareArrowOutUpRight } from "lucide-react";
@@ -42,6 +42,21 @@ const CAMS = [
   },
 ];
 
+export function LiveTimestamp() {
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+  return <span>{date} {time}</span>;
+}
+
 export function CameraGrid() {
   const { open } = useSettingsPanel();
   const socketRefs = useRef<Record<string, WebSocket>>({});
@@ -76,9 +91,6 @@ export function CameraGrid() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded bg-black/55 text-white/90 tracking-wider">
-                      REC · 1080p
-                    </span>
                     <button
                       type="button"
                       onClick={() => open(c.id, c.type, c.label, c.url, socketRefs.current[c.id])}
@@ -95,7 +107,7 @@ export function CameraGrid() {
                     <div className="bg-black text-sm font-semibold tracking-tight p-1 rounded">{c.label}</div>
                   </div>
                   <div className="text-white/80">
-                    {new Date().toLocaleTimeString([], { hour12: false })}
+                    <LiveTimestamp />
                   </div>
                 </div>
               </div>

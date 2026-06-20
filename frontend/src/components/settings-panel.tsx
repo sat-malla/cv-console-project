@@ -175,7 +175,7 @@ function CameraModal() {
                     <LiveTimestamp />
                   </div>
               </div>
-              <VideoPanel url={openCam.url} />
+              <VideoPanel url={openCam.url} camId={openCam.id} />
             </div>
 
             <div className="w-full md:w-95 shrink-0 border-t md:border-t-0 md:border-l border-border bg-card flex flex-col">

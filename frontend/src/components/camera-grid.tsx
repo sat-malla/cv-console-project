@@ -73,6 +73,7 @@ export function CameraGrid() {
               <div className="relative aspect-16/10 overflow-hidden">
                 <VideoPanel
                   url={c.url}
+                  camId={c.id}
                   onSocket={(ws) => {
                     socketRefs.current[c.id] = ws;
                   }}

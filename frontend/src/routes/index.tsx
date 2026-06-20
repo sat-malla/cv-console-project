@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CameraGrid } from "@/components/camera-grid";
 import { Activity, Cpu, Radio } from "lucide-react";
+import { RecordButton } from "@/components/record-modal";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -25,13 +26,8 @@ function Index() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Six synchronized feeds · real-time computer vision telemetry</p>
         </div>
-        <div className="flex items-center gap-2 font-mono text-xs">
-          <Stat icon={<Radio className="h-3.5 w-3.5" />} label="FEEDS" value="6/6" color="#00db58" />
-          <Stat icon={<Activity className="h-3.5 w-3.5" />} label="LATENCY" value="42ms" color="#f6ff47" />
-          <Stat icon={<Cpu className="h-3.5 w-3.5" />} label="LOAD" value="38%" color="#b908ff" />
-        </div>
+        <RecordButton />
       </div>
-
 
       <div className="flex-1 pl-6 pr-0 overflow-visible">
         <CameraGrid />

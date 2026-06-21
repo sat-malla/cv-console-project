@@ -6,7 +6,7 @@ type Ctx = {
   recordingState: RecordingState;
   isAnyRecording: boolean;
   registerCanvas: (camId: string, canvas: HTMLCanvasElement) => void;
-  startRecording: (camIds: string[]) => void;
+  startRecording: (camIds: string[], format: "webm" | "mp4" | "mov") => void;
   stopRecording: () => void;
 };
 
@@ -17,12 +17,14 @@ export function RecordingProvider({ children }: { children: ReactNode }) {
   const canvasRefs = useRef<Record<string, HTMLCanvasElement>>({});
   const recorders = useRef<Record<string, MediaRecorder>>({});
   const chunks = useRef<Record<string, Blob[]>>({});
+  const exportFormatRef = useRef<"webm" | "mp4" | "mov">("webm");
 
   const registerCanvas = (camId: string, canvas: HTMLCanvasElement) => {
     canvasRefs.current[camId] = canvas;
   };
 
-  const startRecording = (camIds: string[]) => {
+  const startRecording = (camIds: string[], format: "webm" | "mp4" | "mov") => {
+    exportFormatRef.current = format;
     const newState: RecordingState = {};
 
     camIds.forEach((camId) => {
@@ -37,16 +39,33 @@ export function RecordingProvider({ children }: { children: ReactNode }) {
         if (e.data.size > 0) chunks.current[camId].push(e.data);
       };
 
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         const blob = new Blob(chunks.current[camId], { type: "video/webm" });
-        const url = URL.createObjectURL(blob);
+        const format = exportFormatRef.current;
+        if (format === "webm") {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${camId}_${Date.now()}.webm`;
+            a.click();
+            URL.revokeObjectURL(url);
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", blob, `${camId}.webm`);
+
+        const response = await fetch(`http://127.0.0.1:8000/convert?format=${format}`, {
+            method: "POST",
+            body: formData,
+        });
+
+        const convertedBlob = await response.blob();
+        const url = URL.createObjectURL(convertedBlob);
         const a = document.createElement("a");
-        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
         a.href = url;
-        a.download = `${camId}_${timestamp}.webm`;
-        document.body.appendChild(a);
+        a.download = `${camId}_${Date.now()}.${format}`;
         a.click();
-        document.body.removeChild(a);
         URL.revokeObjectURL(url);
       };
 

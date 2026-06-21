@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRecording } from "../contexts/recording-context";
-import { Circle, Square } from "lucide-react";
+import { Circle, Square, ChevronDown } from "lucide-react";
 
 const CAM_LIST = [
   { id: "CAM-01", label: "Regular" },
@@ -15,6 +15,7 @@ const CAM_LIST = [
 export function RecordButton() {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  const [format, setFormat] = useState<"webm" | "mp4" | "mov">("webm");
   const { isAnyRecording, startRecording, stopRecording } = useRecording();
 
   const toggle = (id: string) =>
@@ -22,7 +23,7 @@ export function RecordButton() {
 
   const handleStart = () => {
     if (selected.length === 0) return;
-    startRecording(selected);
+    startRecording(selected, format);
     setOpen(false);
   };
 
@@ -76,6 +77,20 @@ export function RecordButton() {
                 </span>
               </label>
             ))}
+          </div>
+
+          <p>Export as: </p>
+          <div className="relative">
+            <select
+              value={format}
+              onChange={(e) => setFormat(e.target.value as "webm" | "mp4" | "mov")}
+              className="w-full mt-3 bg-card border border-border rounded-md pl-3 pr-9 py-2 font-mono text-xs appearance-none cursor-pointer"
+            >
+              <option value="webm">.webm</option>
+              <option value="mp4">.mp4</option>
+              <option value="mov">.mov</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 mt-1.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           </div>
 
           <button

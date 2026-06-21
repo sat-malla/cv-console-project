@@ -131,8 +131,8 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <SettingsPanelProvider>
-          <RecordingProvider>
+        <RecordingProvider>
+          <SettingsPanelProvider>
             <div className="min-h-screen flex flex-col">
               <NavBar />
               <div className="flex-1 flex gap-6">
@@ -143,8 +143,8 @@ function RootComponent() {
               <Footer />
               <AgentBot />
             </div>
-          </RecordingProvider>
-        </SettingsPanelProvider>
+          </SettingsPanelProvider>
+        </RecordingProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

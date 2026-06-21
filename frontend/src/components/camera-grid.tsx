@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import VideoPanel from "./video-panel.tsx";
 import { useSettingsPanel } from "./settings-panel.tsx";
 import { SquareArrowOutUpRight } from "lucide-react";
+import { useRecording } from "@/contexts/recording-context.tsx";
 
 const CAMS = [
   {
@@ -54,17 +55,24 @@ export function LiveTimestamp() {
   const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   const time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
-  return <span>{date} {time}</span>;
+  return (
+    <span>
+      {date} {time}
+    </span>
+  );
 }
 
 export function CameraGrid() {
   const { open } = useSettingsPanel();
+  const { recordingState } = useRecording();
   const socketRefs = useRef<Record<string, WebSocket>>({});
 
   return (
     <div className="flex gap-4 transition-all duration-300">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 transition-all duration-300 min-w-0 w-full">
         {CAMS.map((c, i) => {
+          const isRecording = recordingState[c.id];
+
           return (
             <div
               key={c.id}
@@ -87,9 +95,26 @@ export function CameraGrid() {
                 />
                 <div className="absolute top-0 left-0 right-0 p-3 flex items-center justify-between font-mono text-[11px]">
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded bg-black/55 text-white tracking-widest">
+                    <span
+                      className="px-2 py-0.5 rounded bg-black/55 text-white tracking-widest"
+                      style={
+                        isRecording
+                          ? {
+                              border: "1px solid #ef4444",
+                              boxShadow:
+                                "0 0 0 1px #ef444433 inset, 0 0 8px -1px #ef4444, 0 0 16px -4px #ef4444",
+                            }
+                          : undefined
+                      }
+                    >
                       {c.id}
                     </span>
+                    {isRecording && (
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 animate-ping" />
+                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -105,7 +130,9 @@ export function CameraGrid() {
 
                 <div className="absolute bottom-0 left-0 right-0 p-3 flex items-end justify-between font-mono text-[11px] bg-linear-to-t from-black/70 to-transparent">
                   <div className="text-white">
-                    <div className="bg-black text-sm font-semibold tracking-tight p-1 rounded">{c.label}</div>
+                    <div className="bg-black text-sm font-semibold tracking-tight p-1 rounded">
+                      {c.label}
+                    </div>
                   </div>
                   <div className="text-white/80">
                     <LiveTimestamp />

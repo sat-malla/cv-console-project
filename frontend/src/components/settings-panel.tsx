@@ -101,11 +101,14 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
       });
       setAllValues((prev) => ({ ...prev, [id]: defaults }));
     }
+
+    const configWs = new WebSocket(url);
     setOpenCam({ id, type, label, url });
-    setWs(socket);
+    setWs(configWs);
   };
 
   const close = () => {
+    ws?.close();
     setOpenCam(null);
     setWs(null);
   };
@@ -175,7 +178,7 @@ function CameraModal() {
                     <LiveTimestamp />
                   </div>
               </div>
-              <VideoPanel url={openCam.url} camId={openCam.id} />
+              <VideoPanel url={openCam.url} camId={openCam.id} skipRecording />
             </div>
 
             <div className="w-full md:w-95 shrink-0 border-t md:border-t-0 md:border-l border-border bg-card flex flex-col">

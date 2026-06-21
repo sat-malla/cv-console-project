@@ -144,8 +144,15 @@ async def video_feed(websocket: WebSocket):
                     hsv[:, :, 0] = (hsv[:, :, 0] + hue) % 100
                     hsv = np.clip(hsv, 0, 255).astype("uint8")
                     frame = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
+                frame = np.clip(frame, 0, 255).astype("uint8")
+
+                if frame.dtype != np.uint8 or len(frame.shape) != 3 or frame.shape[2] != 3:
+                    print(f"BAD FRAME: dtype={frame.dtype}, shape={frame.shape}")
                 
                 _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                if buffer is None or len(buffer) == 0:
+                    print("ENCODE FAILED")
                 await websocket.send_bytes(buffer.tobytes())
             except Exception:
                 stop.set()

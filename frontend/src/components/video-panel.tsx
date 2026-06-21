@@ -5,18 +5,19 @@ interface VideoPanelProps {
   url: string;
   camId: string;
   onSocket?: (ws: WebSocket) => void;
+  skipRecording?: boolean
 }
 
-export default function VideoPanel({ url, camId, onSocket }: VideoPanelProps) {
+export default function VideoPanel({ url, camId, onSocket, skipRecording }: VideoPanelProps) {
   const imgRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { registerCanvas } = useRecording();
 
   useEffect(() => {
-    if (canvasRef.current) {
+    if (canvasRef.current && !skipRecording) {
       registerCanvas(camId, canvasRef.current);
     }
-  }, [camId]);
+  }, [camId, skipRecording]);
 
   useEffect(() => {
     const ws = new WebSocket(url);
@@ -35,6 +36,16 @@ export default function VideoPanel({ url, camId, onSocket }: VideoPanelProps) {
       img.onload = () => {
         const ctx = canvas.getContext("2d");
         if (ctx) {
+          if (canvas.width !== img.naturalWidth || canvas.height !== img.naturalHeight) {
+            console.log(
+              "Canvas resized mid-stream:",
+              canvas.width,
+              canvas.height,
+              "->",
+              img.naturalWidth,
+              img.naturalHeight,
+            );
+          }
           canvas.width = img.naturalWidth;
           canvas.height = img.naturalHeight;
           ctx.drawImage(img, 0, 0);

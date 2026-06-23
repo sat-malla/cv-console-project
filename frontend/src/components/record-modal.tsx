@@ -33,7 +33,7 @@ export function RecordButton() {
         onClick={stopRecording}
         className="flex items-center gap-2 rounded-md border border-red-500/50 bg-red-500/10 px-3 py-1.5 font-mono text-xs text-red-400 hover:bg-red-500/20 transition-colors"
       >
-        <Square className="h-3 w-3 fill-current" />
+        <Square className="h-4 w-4 fill-current" />
         Stop recording
       </button>
     );

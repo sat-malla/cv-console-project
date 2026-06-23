@@ -3,6 +3,7 @@ import VideoPanel from "./video-panel.tsx";
 import { useSettingsPanel } from "./settings-panel.tsx";
 import { SquareArrowOutUpRight } from "lucide-react";
 import { useRecording } from "@/contexts/recording-context.tsx";
+import { useCameraSource } from "@/contexts/camera-source-context.tsx";
 
 const CAMS = [
   {
@@ -65,6 +66,7 @@ export function LiveTimestamp() {
 export function CameraGrid() {
   const { open } = useSettingsPanel();
   const { recordingState } = useRecording();
+  const { activeIndex } = useCameraSource();
   const socketRefs = useRef<Record<string, WebSocket>>({});
 
   return (
@@ -79,13 +81,19 @@ export function CameraGrid() {
               className="group relative overflow-hidden camera-frame hover:camera-frame-hover transition-transform hover:-translate-y-0.5"
             >
               <div className="relative aspect-16/10 overflow-hidden">
-                <VideoPanel
-                  url={c.url}
-                  camId={c.id}
-                  onSocket={(ws) => {
-                    socketRefs.current[c.id] = ws;
-                  }}
-                />
+                {activeIndex === null ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black gap-2">
+                    <span className="font-mono text-xs text-white/40">No camera selected</span>
+                  </div>
+                ) : (
+                  <VideoPanel
+                    url={c.url}
+                    camId={c.id}
+                    onSocket={(ws) => {
+                      socketRefs.current[c.id] = ws;
+                    }}
+                  />
+                )}
                 <div
                   className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay"
                   style={{

@@ -17,6 +17,7 @@ import { Footer } from "@/components/footer";
 import { AgentBot } from "@/components/agent-bot";
 import { SettingsPanelProvider } from "@/components/settings-panel";
 import { RecordingProvider } from "@/contexts/recording-context";
+import { CameraSourceProvider } from "@/contexts/camera-source-context";
 
 function NotFoundComponent() {
   return (
@@ -132,18 +133,20 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <RecordingProvider>
-          <SettingsPanelProvider>
-            <div className="min-h-screen flex flex-col">
-              <NavBar />
-              <div className="flex-1 flex gap-6">
-                <main className="flex-1 min-w-0">
-                  <Outlet />
-                </main>
+          <CameraSourceProvider>
+            <SettingsPanelProvider>
+              <div className="min-h-screen flex flex-col">
+                <NavBar />
+                <div className="flex-1 flex gap-6">
+                  <main className="flex-1 min-w-0">
+                    <Outlet />
+                  </main>
+                </div>
+                <Footer />
+                <AgentBot />
               </div>
-              <Footer />
-              <AgentBot />
-            </div>
-          </SettingsPanelProvider>
+            </SettingsPanelProvider>
+          </CameraSourceProvider>
         </RecordingProvider>
       </ThemeProvider>
     </QueryClientProvider>

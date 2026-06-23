@@ -10,6 +10,9 @@ import colorsys
 import subprocess
 import uuid
 import os
+import json as json
+import platform
+from typing import Optional
 import torch
 from torchvision.transforms import transforms
 
@@ -25,7 +28,6 @@ yolo_config = {"conf_threshold": 0.4, "box_thickness": 2, "max_detections": 20}
 sfm_config = {"maxCorners": 150, "qualityLevel": 0.3, "minDistance": 7, "arrowScale": 1.0, "pointSize": 3, "hue": 0}
 sv_config = {"colormap": 8, "contrast": 1.0, "invert": 0, "smoothing": 0}
 
-
 # models
 model = YOLO("yolo26n.pt")
 midas = torch.hub.load("intel-isl/MiDaS", "MiDaS_small")
@@ -35,20 +37,6 @@ midas.eval() # type: ignore
 
 midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
 midas_transform = midas_transforms.small_transform # type: ignore
-
-def hue_to_bgr(hue): # convert 0-360 to 0-1 for colorsys
-    r, g, b = colorsys.hsv_to_rgb(hue / 360.0, 1.0, 1.0)
-    return (int(b * 255), int(g * 255), int(r * 255))
-
-async def capture_loop():
-    global latest_frame
-    cap = cv2.VideoCapture(1)
-    loop = asyncio.get_event_loop()
-    while True:
-        ret, frame = await loop.run_in_executor(None, cap.read)
-        if ret:
-            latest_frame = frame
-        await asyncio.sleep(0.01)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -71,6 +59,52 @@ app.add_middleware(
 )
 
 # Utils
+active_camera_index: dict[str, Optional[int]] = {"index": None}
+cap_holder: dict[str, Optional[cv2.VideoCapture]] = {"cap": None}
+
+@app.get("/cameras")
+async def list_cameras():
+    system = platform.system()
+
+    if system == "Darwin": # MacOS
+        try:
+            result = subprocess.run(["system_profiler", "SPCameraDataType", "-json"],
+                capture_output=True, text=True, timeout=5)
+            data = json.loads(result.stdout)
+            cameras = data.get("SPCameraDataType", [])
+            device_list = [{"name": cam.get("_name", "Unknown"), "index": i} for i, cam in enumerate(cameras)]
+            return {"cameras": device_list}
+        except Exception:
+            pass
+    
+    # Windows/Linux/any MacOS failure fallback
+    device_list = []
+    for i in range(5):
+        cap = cv2.VideoCapture(i)
+        if cap.isOpened():
+            device_list.append({"name": f"Camera {i}", "index": i})
+        cap.release()
+    return {"cameras": device_list}
+
+@app.post("/select-camera")
+async def select_camera(index: int):
+    if cap_holder["cap"] is not None:
+        cap_holder["cap"].release()
+    new_cap = cv2.VideoCapture(index)
+    if not new_cap.isOpened():
+        return {"success": False, "error": "Couldn't open camera"}
+    cap_holder["cap"] = new_cap
+    active_camera_index["index"] = index
+    return {"success": True, "error": "None"}
+
+@app.post("/disconnect-camera")
+async def disconnect_camera():
+    if cap_holder["cap"] is not None:
+        cap_holder["cap"].release()
+    cap_holder["cap"] = None
+    active_camera_index["index"] = None
+    return {"success": True, "error": "None"}
+
 @app.post("/convert")
 async def convert_video(file: UploadFile = File(...), format: str = "mp4"):
     temp_id = str(uuid.uuid4())
@@ -97,6 +131,24 @@ async def convert_video(file: UploadFile = File(...), format: str = "mp4"):
 
     return FileResponse(output_path, filename=f"recording.{format}", media_type=f"video/{format}")
 
+def hue_to_bgr(hue): # convert 0-360 to 0-1 for colorsys
+    r, g, b = colorsys.hsv_to_rgb(hue / 360.0, 1.0, 1.0)
+    return (int(b * 255), int(g * 255), int(r * 255))
+
+async def capture_loop():
+    global latest_frame
+    cap = cv2.VideoCapture(1)
+    loop = asyncio.get_event_loop()
+    while True:
+        cap = cap_holder["cap"]
+        if cap is None:
+            latest_frame = None
+            await asyncio.sleep(0.1)
+            continue
+        ret, frame = await loop.run_in_executor(None, cap.read)
+        if ret:
+            latest_frame = frame
+        await asyncio.sleep(0.01)
 
 # Cameras
 @app.websocket("/regular")

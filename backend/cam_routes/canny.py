@@ -7,26 +7,37 @@ import cv2
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 import frame_source
+from sessions import sessions
 
 router = APIRouter()
 
 canny_config = {"threshold1": 100, "threshold2": 200}
 
 
-@router.websocket("/canny")
-async def canny_feed(websocket: WebSocket):
+@router.websocket("/session/{session_id}/canny")
+async def canny_feed(websocket: WebSocket, session_id: str):
+    if session_id not in sessions:
+        await websocket.close(code=4404, reason="Session not found")
+        return
+
     await websocket.accept()
     stop = asyncio.Event()
 
     async def send_frames():
         while not stop.is_set():
-            if frame_source.latest_frame is None:
+            session = sessions.get(session_id)
+            if session is None:
+                stop.set()
+                break
+            latest_frame = session["latest_frame"]
+            if latest_frame is None:
                 await asyncio.sleep(0.01)
                 continue
             try:
-                frame = frame_source.latest_frame.copy()
+                config = session["configs"]["canny"]
+                frame = latest_frame.copy()
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                edges = cv2.Canny(gray, canny_config["threshold1"], canny_config["threshold2"])
+                edges = cv2.Canny(gray, config["threshold1"], config["threshold2"])
                 edges_bgr = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
                 _, buffer = cv2.imencode('.jpg', edges_bgr, [cv2.IMWRITE_JPEG_QUALITY, 70])
                 await websocket.send_bytes(buffer.tobytes())
@@ -40,7 +51,9 @@ async def canny_feed(websocket: WebSocket):
             try:
                 data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
                 incoming = json.loads(data)
-                canny_config.update(incoming)
+                session = sessions.get(session_id)
+                if session:
+                    session["configs"]["canny"].update(incoming)
             except asyncio.TimeoutError:
                 continue
             except Exception:
@@ -50,4 +63,4 @@ async def canny_feed(websocket: WebSocket):
     try:
         await asyncio.gather(send_frames(), recv_config())
     except WebSocketDisconnect:
-        print("Canny Cam Disconnected")
+        print(f"Canny Cam Disconnected: {session_id}")

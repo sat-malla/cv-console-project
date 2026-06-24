@@ -8,6 +8,7 @@ import numpy as np
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 import frame_source
+from sessions import sessions
 from utils import hue_to_bgr
 
 router = APIRouter()
@@ -15,8 +16,12 @@ router = APIRouter()
 sfm_config = {"maxCorners": 150, "qualityLevel": 0.3, "minDistance": 7, "arrowScale": 1.0, "pointSize": 3, "hue": 0}
 
 
-@router.websocket("/sfm")
-async def sfm_feed(websocket: WebSocket):
+@router.websocket("/sessions/{session_id}/sfm")
+async def sfm_feed(websocket: WebSocket, session_id: str):
+    if session_id not in sessions:
+        await websocket.close(code=4404, reason="Session not found")
+        return
+
     await websocket.accept()
     stop = asyncio.Event()
 
@@ -27,11 +32,17 @@ async def sfm_feed(websocket: WebSocket):
     async def send_frames():
         nonlocal prev_frame, prev_points, frame_count
         while not stop.is_set():
-            if frame_source.latest_frame is None:
+            session = sessions.get(session_id)
+            if session is None:
+                stop.set()
+                break
+            latest_frame = session["latest_frame"]
+            if latest_frame is None:
                 await asyncio.sleep(0.01)
                 continue
             try:
-                frame = frame_source.latest_frame.copy()
+                config = session["configs"]["sfm"]
+                frame = latest_frame.copy()
                 curr_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 frame_count += 1
 
@@ -40,9 +51,9 @@ async def sfm_feed(websocket: WebSocket):
                 if prev_frame is None or prev_points is None or frame_count % 60 == 0 or resolution_changed:
                     prev_points = cv2.goodFeaturesToTrack(
                         curr_frame,
-                        maxCorners=sfm_config["maxCorners"],
-                        qualityLevel=sfm_config["qualityLevel"],
-                        minDistance=sfm_config["minDistance"],
+                        maxCorners=config["maxCorners"],
+                        qualityLevel=config["qualityLevel"],
+                        minDistance=config["minDistance"],
                         blockSize=7
                     )
                     prev_frame = curr_frame.copy()
@@ -68,19 +79,19 @@ async def sfm_feed(websocket: WebSocket):
                 if curr_points is not None and status is not None:
                     good_new = curr_points[status == 1]
                     good_old = prev_points[status == 1]
-                    color = hue_to_bgr(sfm_config["hue"])
+                    color = hue_to_bgr(config["hue"])
 
                     for new, old in zip(good_new, good_old):
                         x_new, y_new = map(int, new.ravel())
                         x_old, y_old = map(int, old.ravel())
 
-                        dx = int((x_new - x_old) * sfm_config["arrowScale"])
-                        dy = int((y_new - y_old) * sfm_config["arrowScale"])
+                        dx = int((x_new - x_old) * config["arrowScale"])
+                        dy = int((y_new - y_old) * config["arrowScale"])
                         x_end = x_old + dx
                         y_end = y_old + dy
 
                         cv2.arrowedLine(frame, (x_old, y_old), (x_end, y_end), color, 1, tipLength=0.3)
-                        cv2.circle(frame, (x_new, y_new), sfm_config["pointSize"], color, -1)
+                        cv2.circle(frame, (x_new, y_new), config["pointSize"], color, -1)
 
                     prev_frame = curr_frame.copy()
                     prev_points = good_new.reshape(-1, 1, 2) if len(good_new) > 0 else None
@@ -107,4 +118,4 @@ async def sfm_feed(websocket: WebSocket):
     try:
         await asyncio.gather(send_frames(), recv_config())
     except WebSocketDisconnect:
-        print("SFM Cam Disconnected")
+        print(f"SFM Cam Disconnected: {session_id}")

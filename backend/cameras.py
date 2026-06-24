@@ -6,6 +6,8 @@ from typing import Optional
 import cv2
 from fastapi import APIRouter
 
+import sessions as sess_module
+
 router = APIRouter()
 
 active_camera_index: dict[str, Optional[int]] = {"index": None}
@@ -38,23 +40,18 @@ async def list_cameras():
         cap.release()
     return {"cameras": device_list}
 
+@router.post("/sessions")
+async def create_sess(index: int, name: str="Camera"):
+    return sess_module.create_session(index, name)
 
-@router.post("/select-camera")
-async def select_camera(index: int):
-    if cap_holder["cap"] is not None:
-        cap_holder["cap"].release()
-    new_cap = cv2.VideoCapture(index)
-    if not new_cap.isOpened():
-        return {"success": False, "error": "Couldn't open camera"}
-    cap_holder["cap"] = new_cap
-    active_camera_index["index"] = index
-    return {"success": True, "error": "None"}
+@router.delete("/sessions/{session_id}")
+async def delete_sess(session_id: str):
+    return sess_module.delete_session(session_id)
+
+@router.get("/sessions")
+async def list_sess():
+    return {"sessions": sess_module.list_sessions()}
 
 
-@router.post("/disconnect-camera")
-async def disconnect_camera():
-    if cap_holder["cap"] is not None:
-        cap_holder["cap"].release()
-    cap_holder["cap"] = None
-    active_camera_index["index"] = None
-    return {"success": True, "error": "None"}
+
+

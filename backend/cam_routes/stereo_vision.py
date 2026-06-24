@@ -1,0 +1,77 @@
+# Stereo Vision Depth Tracking with MiDaS
+
+import asyncio
+import json
+
+import cv2
+import torch
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
+import frame_source
+from models import midas, midas_transform
+
+router = APIRouter()
+
+sv_config = {"colormap": 8, "contrast": 1.0, "invert": 0, "smoothing": 0}
+
+
+@router.websocket("/stvis")
+async def stereo_vis_feed(websocket: WebSocket):
+    await websocket.accept()
+    stop = asyncio.Event()
+
+    async def send_frames():
+        while not stop.is_set():
+            if frame_source.latest_frame is None:
+                await asyncio.sleep(0.01)
+                continue
+            try:
+                frame = frame_source.latest_frame.copy()
+                img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                input_batch = midas_transform(img_rgb).to("mps")
+                with torch.no_grad():
+                    prediction = midas(input_batch)  # type: ignore
+                    prediction = torch.nn.functional.interpolate(
+                        prediction.unsqueeze(1),
+                        size=img_rgb.shape[:2],
+                        mode="bicubic",
+                        align_corners=False
+                    ).squeeze()
+
+                depth_map = prediction.cpu().numpy()
+                depth_map = depth_map * sv_config.get("contrast", 1.0)
+                depth_min = depth_map.min()
+                depth_max = depth_map.max()
+                depth_normalized = (255 * (depth_map - depth_min) / (depth_max - depth_min)).astype("uint8")
+                if sv_config.get("invert", 0):
+                    depth_normalized = 255 - depth_normalized
+                depth_colored = cv2.applyColorMap(depth_normalized, cv2.COLORMAP_INFERNO)
+                blur = int(sv_config.get("smoothing", 0))
+                if blur > 0:
+                    k = blur if blur % 2 == 1 else blur + 1
+                    depth_colored = cv2.GaussianBlur(depth_colored, (k, k), 0)
+
+                _, buffer = cv2.imencode('.jpg', depth_colored, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                await websocket.send_bytes(buffer.tobytes())
+            except Exception:
+                stop.set()
+                break
+            await asyncio.sleep(0.033)
+
+    async def recv_config():
+        while not stop.is_set():
+            try:
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
+                incoming = json.loads(data)
+                sv_config.update(incoming)
+            except asyncio.TimeoutError:
+                continue
+            except Exception:
+                stop.set()
+                break
+
+    try:
+        await asyncio.gather(send_frames(), recv_config())
+    except WebSocketDisconnect:
+        print("Stereo Vision Cam Disconnected")

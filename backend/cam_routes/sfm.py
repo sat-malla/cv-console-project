@@ -35,7 +35,9 @@ async def sfm_feed(websocket: WebSocket):
                 curr_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 frame_count += 1
 
-                if prev_frame is None or prev_points is None or frame_count % 60 == 0:
+                resolution_changed = prev_frame is not None and prev_frame.shape != curr_frame.shape
+
+                if prev_frame is None or prev_points is None or frame_count % 60 == 0 or resolution_changed:
                     prev_points = cv2.goodFeaturesToTrack(
                         curr_frame,
                         maxCorners=sfm_config["maxCorners"],

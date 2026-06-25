@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CameraGrid } from "@/components/camera-grid";
 import { CameraPickerButton } from "@/components/camera-picker";
+import { CameraSwitcher } from "@/components/camera-switcher";
 import { RecordButton } from "@/components/record-modal";
 
 export const Route = createFileRoute("/")({
@@ -39,6 +40,7 @@ function Index() {
         <div className="flex items-center gap-3">
           <CameraPickerButton />
           <RecordButton />
+          <CameraSwitcher />
         </div>
       </div>
 

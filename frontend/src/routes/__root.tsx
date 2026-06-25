@@ -17,7 +17,7 @@ import { Footer } from "@/components/footer";
 import { AgentBot } from "@/components/agent-bot";
 import { SettingsPanelProvider } from "@/components/settings-panel";
 import { RecordingProvider } from "@/contexts/recording-context";
-import { CameraSourceProvider } from "@/contexts/camera-source-context";
+import { CameraSessionsProvider } from "@/contexts/camera-sessions-context";
 
 function NotFoundComponent() {
   return (
@@ -133,7 +133,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <RecordingProvider>
-          <CameraSourceProvider>
+          <CameraSessionsProvider>
             <SettingsPanelProvider>
               <div className="min-h-screen flex flex-col">
                 <NavBar />
@@ -146,7 +146,7 @@ function RootComponent() {
                 <AgentBot />
               </div>
             </SettingsPanelProvider>
-          </CameraSourceProvider>
+          </CameraSessionsProvider>
         </RecordingProvider>
       </ThemeProvider>
     </QueryClientProvider>

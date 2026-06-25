@@ -3,7 +3,7 @@ import VideoPanel from "./video-panel.tsx";
 import { useSettingsPanel } from "./settings-panel.tsx";
 import { SquareArrowOutUpRight } from "lucide-react";
 import { useRecording } from "@/contexts/recording-context.tsx";
-import { useCameraSource } from "@/contexts/camera-source-context.tsx";
+import { useCameraSessions } from "@/contexts/camera-sessions-context.tsx";
 
 const CAMS = [
   {
@@ -66,14 +66,22 @@ export function LiveTimestamp() {
 export function CameraGrid() {
   const { open } = useSettingsPanel();
   const { recordingState } = useRecording();
-  const { activeIndex } = useCameraSource();
+  const { activeSession } = useCameraSessions();
   const socketRefs = useRef<Record<string, WebSocket>>({});
+
+  const CAMERAS = activeSession
+    ? CAMS.map((c) => ({
+        ...c,
+        url: `ws://127.0.0.1:8000/session/${activeSession.sessionId}/${c.type}`,
+      }))
+    : [];
 
   return (
     <div className="flex gap-4 transition-all duration-300">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 transition-all duration-300 min-w-0 w-full">
         {CAMS.map((c, i) => {
           const isRecording = recordingState[c.id];
+          const camUrl = activeSession ? `ws://127.0.0.1:8000/session/${activeSession.sessionId}/${c.type}` : null;
 
           return (
             <div
@@ -81,13 +89,14 @@ export function CameraGrid() {
               className="group relative overflow-hidden camera-frame hover:camera-frame-hover transition-transform hover:-translate-y-0.5"
             >
               <div className="relative aspect-16/10 overflow-hidden">
-                {activeIndex === null ? (
+                {!activeSession || !camUrl ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-black gap-2">
                     <span className="font-mono text-xs text-white/40">No camera selected</span>
                   </div>
                 ) : (
                   <VideoPanel
-                    url={c.url}
+                    key={camUrl}
+                    url={camUrl}
                     camId={c.id}
                     onSocket={(ws) => {
                       socketRefs.current[c.id] = ws;

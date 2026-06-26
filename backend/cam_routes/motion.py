@@ -20,7 +20,7 @@ fgbg = cv2.createBackgroundSubtractorMOG2(
 )
 
 
-@router.websocket("/sessions/{session_id}/motion")
+@router.websocket("/session/{session_id}/motion")
 async def mog2_feed(websocket: WebSocket, session_id: str):
     if session_id not in sessions:
         await websocket.close(code=4404, reason="Session not found")

@@ -36,7 +36,7 @@ async def stereo_vis_feed(websocket: WebSocket, session_id: str):
                 await asyncio.sleep(0.01)
                 continue
             try:
-                config = session["config"]["stvis"]
+                config = session["configs"]["stvis"]
                 frame = latest_frame.copy()
                 img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 

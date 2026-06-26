@@ -15,7 +15,7 @@ router = APIRouter()
 yolo_config = {"conf_threshold": 0.4, "box_thickness": 2, "max_detections": 20}
 
 
-@router.websocket("/sessions/{session_id}/yolo")
+@router.websocket("/session/{session_id}/yolo")
 async def yolo_feed(websocket: WebSocket, session_id: str):
     if session_id not in sessions:
         await websocket.close(code=4404, reason="Session not found")

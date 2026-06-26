@@ -16,7 +16,7 @@ router = APIRouter()
 sfm_config = {"maxCorners": 150, "qualityLevel": 0.3, "minDistance": 7, "arrowScale": 1.0, "pointSize": 3, "hue": 0}
 
 
-@router.websocket("/sessions/{session_id}/sfm")
+@router.websocket("/session/{session_id}/sfm")
 async def sfm_feed(websocket: WebSocket, session_id: str):
     if session_id not in sessions:
         await websocket.close(code=4404, reason="Session not found")

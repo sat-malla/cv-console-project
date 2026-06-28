@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRecording } from "../contexts/recording-context";
-import { Circle, Square, ChevronDown } from "lucide-react";
+import { Circle, Square, ChevronDown, Loader2 } from "lucide-react";
 
 const CAM_LIST = [
   { id: "CAM-01", label: "Regular" },
@@ -16,7 +16,7 @@ export function RecordButton() {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [format, setFormat] = useState<"webm" | "mp4" | "mov">("webm");
-  const { isAnyRecording, startRecording, stopRecording } = useRecording();
+  const { isAnyRecording, isDownloading, startRecording, stopRecording } = useRecording();
   const allSelected = selected.length === CAM_LIST.length;
 
   const toggle = (id: string) =>
@@ -36,11 +36,23 @@ export function RecordButton() {
     setOpen(false);
   };
 
+  if (isDownloading) {
+    return (
+      <button
+        disabled
+        className="flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 font-mono text-xs text-muted-foreground cursor-not-allowed"
+      >
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Downloading
+      </button>
+    );
+  }
+
   if (isAnyRecording) {
     return (
       <button
         onClick={stopRecording}
-        className="flex items-center gap-2 rounded-md border border-red-500/50 bg-red-500/10 px-3 py-1.5 font-mono text-xs text-red-400 hover:bg-red-500/20 transition-colors"
+        className="flex items-center gap-2 rounded-md border border-red-500/50 bg-red-500/10 px-4 py-2.5 font-mono text-xs text-red-400 hover:bg-red-500/20 transition-colors"
       >
         <Square className="h-4 w-4 fill-current" />
         Stop recording

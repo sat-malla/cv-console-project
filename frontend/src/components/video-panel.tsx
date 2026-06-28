@@ -5,7 +5,7 @@ interface VideoPanelProps {
   url: string;
   camId: string;
   onSocket?: (ws: WebSocket) => void;
-  skipRecording?: boolean
+  skipRecording?: boolean;
 }
 
 export default function VideoPanel({ url, camId, onSocket, skipRecording }: VideoPanelProps) {
@@ -49,6 +49,30 @@ export default function VideoPanel({ url, camId, onSocket, skipRecording }: Vide
           canvas.width = img.naturalWidth;
           canvas.height = img.naturalHeight;
           ctx.drawImage(img, 0, 0);
+
+          // Timestamp
+          const now = new Date();
+          const pad = (n: number) => String(n).padStart(2, "0");
+          const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+          const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+          const timestamp = `${dateStr} ${timeStr}`;
+
+          ctx.font = "16px monospace";
+          const textWidth = ctx.measureText(timestamp).width;
+          const padding = 8;
+          const x = canvas.width - textWidth - padding * 2 - 8;
+          const y = canvas.height - 28;
+
+          ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+          ctx.fillRect(x, y, textWidth + padding * 2, 22);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+          ctx.fillText(timestamp, x + padding, y + 16);
+
+          ctx.font = "14px monospace";
+          ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+          ctx.fillRect(8, 8, ctx.measureText(camId).width + 16, 22);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+          ctx.fillText(camId, 16, 24);
         }
       };
     };

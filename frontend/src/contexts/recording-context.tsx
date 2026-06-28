@@ -5,6 +5,7 @@ type RecordingState = Record<string, boolean>;
 type Ctx = {
   recordingState: RecordingState;
   isAnyRecording: boolean;
+  isDownloading: boolean;
   registerCanvas: (camId: string, canvas: HTMLCanvasElement) => void;
   startRecording: (camIds: string[], format: "webm" | "mp4" | "mov") => void;
   stopRecording: () => void;
@@ -14,10 +15,12 @@ const RecordingCtx = createContext<Ctx | null>(null);
 
 export function RecordingProvider({ children }: { children: ReactNode }) {
   const [recordingState, setRecordingState] = useState<RecordingState>({});
+  const [isDownloading, setIsDownloading] = useState(false);
   const canvasRefs = useRef<Record<string, HTMLCanvasElement>>({});
   const recorders = useRef<Record<string, MediaRecorder>>({});
   const chunks = useRef<Record<string, Blob[]>>({});
   const exportFormatRef = useRef<"webm" | "mp4" | "mov">("webm");
+  const pendingDownloads = useRef(0);
 
   const registerCanvas = (camId: string, canvas: HTMLCanvasElement) => {
     canvasRefs.current[camId] = canvas;
@@ -47,26 +50,41 @@ export function RecordingProvider({ children }: { children: ReactNode }) {
             const a = document.createElement("a");
             a.href = url;
             a.download = `${camId}_${Date.now()}.webm`;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            pendingDownloads.current -= 1;
+            if (pendingDownloads.current <= 0) {
+                setIsDownloading(false);
+            }
             return;
         }
 
-        const formData = new FormData();
-        formData.append("file", blob, `${camId}.webm`);
+        try {
+            const formData = new FormData();
+            formData.append("file", blob, `${camId}.webm`);
 
-        const response = await fetch(`http://127.0.0.1:8000/convert?format=${format}`, {
-            method: "POST",
-            body: formData,
-        });
+            const response = await fetch(`http://127.0.0.1:8000/convert?format=${format}`, {
+                method: "POST",
+                body: formData,
+            });
 
-        const convertedBlob = await response.blob();
-        const url = URL.createObjectURL(convertedBlob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${camId}_${Date.now()}.${format}`;
-        a.click();
-        URL.revokeObjectURL(url);
+            const convertedBlob = await response.blob();
+            const url = URL.createObjectURL(convertedBlob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${camId}_${Date.now()}.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error("Conversion/download failed:", e);
+        } finally {
+            pendingDownloads.current -= 1;
+          if (pendingDownloads.current <= 0) setIsDownloading(false);
+        }
       };
 
       recorder.start();
@@ -78,6 +96,10 @@ export function RecordingProvider({ children }: { children: ReactNode }) {
   };
 
   const stopRecording = () => {
+    const activeCamIds = Object.keys(recorders.current);
+    pendingDownloads.current = activeCamIds.length;
+    setIsDownloading(true); 
+
     Object.values(recorders.current).forEach((r) => r.stop());
     recorders.current = {};
     setRecordingState({});
@@ -86,7 +108,7 @@ export function RecordingProvider({ children }: { children: ReactNode }) {
   const isAnyRecording = Object.values(recordingState).some(Boolean);
 
   return (
-    <RecordingCtx.Provider value={{ recordingState, isAnyRecording, registerCanvas, startRecording, stopRecording }}>
+    <RecordingCtx.Provider value={{ recordingState, isAnyRecording, isDownloading, registerCanvas, startRecording, stopRecording }}>
       {children}
     </RecordingCtx.Provider>
   );

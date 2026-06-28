@@ -136,7 +136,7 @@ export function CameraGrid() {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => open(c.id, c.type, c.label, c.url, socketRefs.current[c.id])}
+                      onClick={() => activeSession && camUrl && open(c.id, c.type, c.label, camUrl, socketRefs.current[c.id])}
                       aria-label={`${c.id} settings`}
                       className="grid place-items-center h-6 w-6 rounded bg-black/55 text-white/90 hover:text-white hover:bg-black/75 transition-colors"
                     >

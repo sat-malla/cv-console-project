@@ -17,9 +17,18 @@ export function RecordButton() {
   const [selected, setSelected] = useState<string[]>([]);
   const [format, setFormat] = useState<"webm" | "mp4" | "mov">("webm");
   const { isAnyRecording, startRecording, stopRecording } = useRecording();
+  const allSelected = selected.length === CAM_LIST.length;
 
   const toggle = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const toggleAll = () => {
+    if (allSelected) {
+        setSelected([]);
+    } else {
+        setSelected(CAM_LIST.map((cam) => cam.id))
+    }
+  }
 
   const handleStart = () => {
     if (selected.length === 0) return;
@@ -77,6 +86,15 @@ export function RecordButton() {
                 </span>
               </label>
             ))}
+            <label className="flex items-center gap-3 rounded-md border border-border px-3 py-2 cursor-pointer hover:bg-accent transition-colors">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleAll}
+                className="accent-red-500"
+              />
+              <span className="font-mono text-xs">Select All Cameras</span>
+            </label>
           </div>
 
           <p>Export as: </p>

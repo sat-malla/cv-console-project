@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -14,7 +15,6 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "@/components/theme-provider";
 import { NavBar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
-import { AgentBot } from "@/components/agent-bot";
 import { SettingsPanelProvider } from "@/components/settings-panel";
 import { RecordingProvider } from "@/contexts/recording-context";
 import { CameraSessionsProvider } from "@/contexts/camera-sessions-context";
@@ -33,7 +33,7 @@ function NotFoundComponent() {
             to="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Back to console
+            Back to home
           </Link>
         </div>
       </div>
@@ -128,6 +128,8 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isPanel = pathname.startsWith("/panel");
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -136,14 +138,13 @@ function RootComponent() {
           <CameraSessionsProvider>
             <SettingsPanelProvider>
               <div className="min-h-screen flex flex-col">
-                <NavBar />
+                {!isPanel && <NavBar />}
                 <div className="flex-1 flex gap-6">
                   <main className="flex-1 min-w-0">
                     <Outlet />
                   </main>
                 </div>
-                <Footer />
-                <AgentBot />
+                {!isPanel && <Footer />}
               </div>
             </SettingsPanelProvider>
           </CameraSessionsProvider>

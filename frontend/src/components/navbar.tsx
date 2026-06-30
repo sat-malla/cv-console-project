@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, SquareArrowOutUpRight } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useTheme } from "./theme-provider";
 
@@ -17,19 +17,28 @@ export function NavBar() {
             </div>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
-            {[
-              { to: "/", label: "Camera Views" },
-              { to: "/about", label: "About" },
-            ].map((l) => (
-              <Link
-                key={l.to}
-                to={l.to}
-                activeOptions={{ exact: true }}
-                className="px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors data-[status=active]:text-foreground data-[status=active]:bg-accent"
-              >
-                {l.label}
-              </Link>
-            ))}
+            <Link
+              to="/"
+              activeOptions={{ exact: true }}
+              className="px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors data-[status=active]:text-foreground data-[status=active]:bg-accent"
+            >
+              Home
+            </Link>
+            <Link
+              to="/about"
+              activeOptions={{ exact: true }}
+              className="px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors data-[status=active]:text-foreground data-[status=active]:bg-accent"
+            >
+              About
+            </Link>
+            <Link
+              to="/panel"
+              target="_blank"
+              rel="noopener"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            >
+              Camera Panel <SquareArrowOutUpRight className="h-3.5 w-3.5" />
+            </Link>
           </nav>
         </div>
 
@@ -41,15 +50,6 @@ export function NavBar() {
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-          <div className="flex items-center gap-2 pl-3 border-l border-border">
-            <div className="h-8 w-8 rounded-full grid place-items-center text-xs font-bold text-white brand-gradient">
-              VX
-            </div>
-            <div className="hidden sm:flex flex-col leading-tight">
-              <span className="text-xs text-muted-foreground font-mono">operator</span>
-              <span className="text-sm font-medium">@vextrix</span>
-            </div>
-          </div>
         </div>
       </div>
       <div className="h-0.5 w-full rainbow-stroke opacity-80" />

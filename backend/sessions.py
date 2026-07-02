@@ -2,6 +2,8 @@ import asyncio
 import uuid
 import cv2
 
+from agent_events import agent_loop
+
 
 def default_configs():
     return {
@@ -41,9 +43,14 @@ def create_session(index: int, name: str) -> dict:
         "sfm_prev_frame": None,
         "sfm_prev_points": None,
         "sfm_frame_count": 0,
+        "event_queue": asyncio.Queue(maxsize=10), # perception -> agents
+        "summary_queue": asyncio.Queue(maxsize=20), # agents -> WebSocket (UI reads from WS)
+        "last_yolo_classes": set(),
+        "last_motion_ratio": 0.0,
     }
 
     asyncio.create_task(capture_loop(session_id))
+    asyncio.create_task(agent_loop(session_id, sessions))
     return {"success": True, "session_id": session_id}
 
 def delete_session(session_id: str) -> dict:

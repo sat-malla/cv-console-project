@@ -4,8 +4,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 export function CameraSwitcher() {
-  const { sessions, activeSession, switchToNext, switchToPrev, removeSession } =
-    useCameraSessions();
+  const { sessions, activeSession, switchToNext, switchToPrev, removeSession } = useCameraSessions();
   const [confirm, setConfirm] = useState(false);
 
   if (sessions.length === 0) return null;

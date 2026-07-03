@@ -4,41 +4,29 @@ import asyncio
 import time
 import cv2
 
+from vlm_providers import query_vlm
+from sb_logging import log_event
+
 OLLAMA_URL = "http://localhost:11434/api/generate" # Local hosted model for now - the budge holds ://
 SAFETY_PROMPT = "Is there a safety hazard visible in this image? Answer only 'yes' or 'no'."
 SAFETY_REASON_PROMPT = "In under 10 words, what is the hazard?"
-
-async def query_moondream(frame_bytes: bytes, prompt: str):
-    img_b64 = base64.b64encode(frame_bytes).decode("utf-8")
-
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(OLLAMA_URL, json={
-            "model": "moondream",
-            "prompt": prompt,
-            "images": [img_b64],
-            "stream": False,
-        })
-        response.raise_for_status()
-        data = response.json()
-        return data.get("response", "").strip()
     
 
 async def describe_and_condense(frame_bytes: bytes):
-    raw_desc = await query_moondream(
+    raw_desc = await query_vlm(
         frame_bytes,
         "Describe what you are able to see in this image scene in full detail. List the people, vehicles, objects, and actions visible in this scene."
     )
 
-    condensed = await query_moondream(
+    condensed = await query_vlm(
         frame_bytes,
-        "In two to three short sentences, summarize the most important events that occured in this image scene."
+        f"In two to three short sentences, summarize the most important events that occured in this image scene based on your description: {raw_desc}"
     )
-
 
     return condensed
 
 async def check_safety(frame_bytes: bytes):
-    response = await query_moondream(
+    response = await query_vlm(
         frame_bytes,
         SAFETY_PROMPT
     )
@@ -46,7 +34,7 @@ async def check_safety(frame_bytes: bytes):
 
     reason = None
     if danger:
-        reason = await query_moondream(frame_bytes, SAFETY_REASON_PROMPT)
+        reason = await query_vlm(frame_bytes, SAFETY_REASON_PROMPT)
     
     return {"flagged": danger, "reason": reason}
 
@@ -63,16 +51,21 @@ async def agent_loop(session_id: str, sessions: dict):
         try:
             event = await asyncio.wait_for(event_queue.get(), timeout=1.0) # wait for 1 second
             frame_bytes = event["frame_bytes"]
-            event_type = event["type"]
 
             safety_result = await check_safety(frame_bytes)
             if safety_result["flagged"]:
+                message = safety_result["reason"]
                 await summary_queue.put({
                     "type": "safety",
                     "message": safety_result["reason"],
                     "timestamp": time.time()
                 })
-            
+                log_event(
+                    session_id=session_id,
+                    event_type="safety",
+                    message=message,
+                    flagged=True
+                )
         except asyncio.TimeoutError:
             pass
 
@@ -88,6 +81,12 @@ async def agent_loop(session_id: str, sessions: dict):
                     "message": description,
                     "timestamp": now,
                 })
+                log_event(
+                    session_id=session_id,
+                    event_type="scene",
+                    message=description,
+                    flagged=False
+                )
             last_scene_analysis_time = now
 
 

@@ -16,6 +16,7 @@ def log_event(session_id, event_type, message, flagged=False):
         "message": message,
         "flagged": flagged,
     }).execute()
+    
 
 
 

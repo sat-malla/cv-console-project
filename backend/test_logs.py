@@ -1,4 +1,4 @@
-from sb_logs import log_event
+from backend.sb_logging import log_event
 
 log_event(
     session_id="test-session-123",

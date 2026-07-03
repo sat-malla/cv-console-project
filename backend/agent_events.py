@@ -1,8 +1,7 @@
-import base64
-import httpx
 import asyncio
 import time
 import cv2
+from difflib import SequenceMatcher
 
 from vlm_providers import query_vlm
 from sb_logging import log_event
@@ -10,6 +9,11 @@ from sb_logging import log_event
 OLLAMA_URL = "http://localhost:11434/api/generate" # Local hosted model for now - the budge holds ://
 SAFETY_PROMPT = "Is there a safety hazard visible in this image? Answer only 'yes' or 'no'."
 SAFETY_REASON_PROMPT = "In under 10 words, what is the hazard?"
+
+def is_similar(a, b, threshold=0.75):
+    if not a or not b:
+        return False
+    return SequenceMatcher(None, a.lower(), b.lower()).ratio() >= threshold
     
 
 async def describe_and_condense(frame_bytes: bytes):
@@ -73,20 +77,27 @@ async def agent_loop(session_id: str, sessions: dict):
         if now - last_scene_analysis_time >= SCENE_ANALYSIS_INT:
             session = sessions.get(session_id)
             if session and session["latest_frame"] is not None:
-                _, buffer = cv2.imencode('.jpg', session["latest_frame"], [cv2.IMWRITE_JPEG_QUALITY, 70])
-                frame_bytes = buffer.tobytes()
-                description = await describe_and_condense(frame_bytes)
-                await session["summary_queue"].put({
-                    "type": "scene",
-                    "message": description,
-                    "timestamp": now,
-                })
-                log_event(
-                    session_id=session_id,
-                    event_type="scene",
-                    message=description,
-                    flagged=False
-                )
+                session["agent_thinking"] = True
+                try:
+                    _, buffer = cv2.imencode('.jpg', session["latest_frame"], [cv2.IMWRITE_JPEG_QUALITY, 70])
+                    frame_bytes = buffer.tobytes()
+                    description = await describe_and_condense(frame_bytes)
+                    last_msg = session.get("last_scene_message")
+                    if not is_similar(description, last_msg):
+                        await session["summary_queue"].put({
+                            "type": "scene",
+                            "message": description,
+                            "timestamp": now,
+                        })
+                        log_event(
+                            session_id=session_id,
+                            event_type="scene",
+                            message=description,
+                            flagged=False
+                        )
+                        session["last_scene_message"] = description
+                finally:
+                    session["agent_thinking"] = False
             last_scene_analysis_time = now
 
 

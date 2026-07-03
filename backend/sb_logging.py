@@ -17,6 +17,16 @@ def log_event(session_id, event_type, message, flagged=False):
         "flagged": flagged,
     }).execute()
     
+def get_recent_logs(session_id, limit=50):
+    result = (
+        supabase.table("agent_logs")
+        .select("*")
+        .eq("session_id", session_id)
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return result.data
 
 
 

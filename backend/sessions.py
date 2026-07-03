@@ -47,6 +47,8 @@ def create_session(index: int, name: str) -> dict:
         "summary_queue": asyncio.Queue(maxsize=20), # agents -> WebSocket (UI reads from WS)
         "last_yolo_classes": set(),
         "last_motion_ratio": 0.0,
+        "last_scene_message": None,
+        "agent_thinking": False,
     }
 
     asyncio.create_task(capture_loop(session_id))

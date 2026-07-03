@@ -22,11 +22,20 @@ async def query_ollama(frame_bytes: bytes, prompt: str):
         response.raise_for_status()
         data = response.json()
         return data.get("response", "").strip()
+
+async def query_ollama_text(prompt: str):
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(OLLAMA_URL, json={
+            "model": "moondream",
+            "prompt": prompt,
+            "stream": False,
+        })
+        response.raise_for_status()
+        data = response.json()
+        return data.get("response", "").strip()
     
 # add other async functions for query claude, gemini, GPT
-# async def _query_claude(frame_bytes: bytes, prompt: str) -> str:
-#     image_b64 = base64.b64encode(frame_bytes).decode("utf-8")
-
+# async def query_claude(frame_bytes: bytes, prompt: str) -> str:
 #     async with httpx.AsyncClient(timeout=30.0) as client:
 #         response = await client.post(
 #             "https://api.anthropic.com/v1/messages",
@@ -40,10 +49,7 @@ async def query_ollama(frame_bytes: bytes, prompt: str):
 #                 "max_tokens": 200,
 #                 "messages": [{
 #                     "role": "user",
-#                     "content": [
-#                         {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": image_b64}},
-#                         {"type": "text", "text": prompt},
-#                     ],
+#                     "content": prompt
 #                 }],
 #             },
 #         )
@@ -55,3 +61,8 @@ async def query_vlm(frame_bytes: bytes, prompt: str):
     if VLM_PROVIDER == "claude": # or gemini, GPT
         ...
     return await query_ollama(frame_bytes, prompt)
+
+async def query_vlm_text( prompt: str):
+    if VLM_PROVIDER == "claude": # or gemini, GPT
+        ...
+    return await query_ollama_text(prompt)

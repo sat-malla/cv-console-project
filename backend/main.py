@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import frame_source
 from cameras import router as cameras_router
 from cam_recording import router as recording_router
-from cam_routes import regular, canny, motion, yolo, sfm, stereo_vision
+from ws_routes import regular, canny, motion, yolo, sfm, stereo_vision, logs
 
 
 @asynccontextmanager
@@ -33,3 +33,4 @@ app.include_router(motion.router)
 app.include_router(yolo.router)
 app.include_router(sfm.router)
 app.include_router(stereo_vision.router)
+app.include_router(logs.router)

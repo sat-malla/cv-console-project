@@ -47,7 +47,16 @@ def create_session(index: int, name: str) -> dict:
         "summary_queue": asyncio.Queue(maxsize=20), # agents -> WebSocket (UI reads from WS)
         "last_yolo_classes": set(),
         "last_motion_ratio": 0.0,
-        "last_scene_message": None,
+        "agent_sfm_prev_gray": None,
+        "agent_sfm_prev_points": None, # Agent-specific SFM state
+        "last_scene_messages": {
+            "regular": None,
+            "canny": None,
+            "motion": None,
+            "yolo": None,
+            "sfm": None,
+            "stvis": None,
+        },
         "agent_thinking": False,
     }
 

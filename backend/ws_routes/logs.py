@@ -37,6 +37,10 @@ async def agent_chat(session_id, req: ChatRequest):
 
             live_prompt = f"The user asks: {req.message}\n\nAnswer based on what you see right now."
             answer = await query_vlm(frame_bytes, live_prompt)
+
+            if not answer:
+                answer = "I looked at the current frame but couldn't form a clear answer. Please try rephrasing your question."
+
             return {"reply": answer, "used_live_frame": True}
     
     prompt = (
@@ -46,6 +50,8 @@ async def agent_chat(session_id, req: ChatRequest):
         "Answer clearly and concisely, based only on the observations above."
     )
     response = await query_vlm_text(prompt)
+    if not response:
+        response = "Sorry, I am not able to answer your question. Please try another question, or try asking another time."
     return {"reply": response}
 
 

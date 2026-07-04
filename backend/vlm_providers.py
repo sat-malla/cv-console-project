@@ -18,6 +18,9 @@ async def query_ollama(frame_bytes: bytes, prompt: str):
             "prompt": prompt,
             "images": [img_b64],
             "stream": False,
+            "options": {
+                "num_predict": 100, # max tokens to generate
+            }
         })
         response.raise_for_status()
         data = response.json()
@@ -29,6 +32,9 @@ async def query_ollama_text(prompt: str):
             "model": "moondream",
             "prompt": prompt,
             "stream": False,
+            "options": {
+                "num_predict": 100,
+            }
         })
         response.raise_for_status()
         data = response.json()

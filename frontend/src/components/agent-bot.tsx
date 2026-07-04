@@ -1,4 +1,19 @@
-import { Bot, X, ScrollText, MessageSquare, Send, ShieldAlert, Eye, History } from "lucide-react";
+import {
+  Bot,
+  X,
+  ScrollText,
+  MessageSquare,
+  Send,
+  ShieldAlert,
+  Eye,
+  History,
+  Video,
+  Waves,
+  Move,
+  Boxes,
+  GitBranch,
+  Layers,
+} from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useCameraSessions } from "@/contexts/camera-sessions-context";
 
@@ -17,6 +32,26 @@ type ChatMessage = {
   usedLiveFrame?: boolean;
 };
 
+const VIEW_ICONS: Record<string, typeof Video> = {
+  scene_regular: Video,
+  scene_canny: Waves,
+  scene_motion: Move,
+  scene_yolo: Boxes,
+  scene_sfm: GitBranch,
+  scene_stvis: Layers,
+  safety: ShieldAlert,
+};
+
+const VIEW_LABELS: Record<string, string> = {
+  scene_regular: "Regular",
+  scene_canny: "Canny",
+  scene_motion: "Motion",
+  scene_yolo: "YOLO",
+  scene_sfm: "SFM",
+  scene_stvis: "Depth",
+  safety: "Safety",
+};
+
 export function AgentBot() {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"logs" | "chat">("logs");
@@ -27,6 +62,7 @@ export function AgentBot() {
   const [isThinking, setIsThinking] = useState(false);
   const { activeSession } = useCameraSessions();
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const fetchLogs = async () => {
     if (!activeSession) return;
@@ -50,6 +86,22 @@ export function AgentBot() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setChatInput(e.target.value);
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = `${Math.min(el.scrollHeight, 120)}px`; // caps at 5 lines
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
 
   const sendMessage = async () => {
     if (!chatInput.trim() || !activeSession || isSending) return;
@@ -207,12 +259,14 @@ export function AgentBot() {
                 </div>
 
                 <div className="flex items-center gap-2 p-3 border-t border-border shrink-0">
-                  <input
+                  <textarea
+                    ref={textareaRef}
                     value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
                     placeholder="Ask the agent..."
-                    className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-xs font-mono focus:outline-none focus:border-blue-500"
+                    rows={1}
+                    className="flex-1 resize-none bg-background border border-border rounded-md px-3 py-2 text-xs font-mono focus:outline-none focus:border-blue-500 leading-relaxed"
                   />
                   <button
                     onClick={sendMessage}
@@ -244,6 +298,9 @@ function LogRow({ log, compact = false }: { log: LogEntry; compact?: boolean }) 
   const [expanded, setExpanded] = useState(false);
   const time = new Date(log.created_at).toLocaleTimeString([], { hour12: false });
 
+  const Icon = VIEW_ICONS[log.type] ?? Video;
+  const label = VIEW_LABELS[log.type] ?? log.type;
+
   return (
     <div
       className={`rounded-md border px-2.5 py-2 ${
@@ -252,9 +309,9 @@ function LogRow({ log, compact = false }: { log: LogEntry; compact?: boolean }) 
       onClick={() => compact && setExpanded((e) => !e)}
     >
       <div className="flex items-center gap-1.5 mb-0.5">
-        {log.flagged && <ShieldAlert className="h-3 w-3 text-red-400" />}
+        <Icon className={`h-3 w-3 ${log.flagged ? "text-red-400" : "text-muted-foreground"}`} />
         <span className="font-mono text-[9px] text-muted-foreground uppercase tracking-widest">
-          {log.type} · {time}
+          {label} · {time}
         </span>
       </div>
       <p className={`text-xs leading-snug ${compact && !expanded ? "line-clamp-2" : ""}`}>

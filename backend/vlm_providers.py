@@ -63,12 +63,27 @@ async def query_ollama_text(prompt: str):
 #         data = response.json()
 #         return data["content"][0]["text"].strip()
 
+async def query_llama(prompt: str):
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(OLLAMA_URL, json={
+            "model": "llama3.2",
+            "prompt": prompt,
+            "stream": False,
+            "options": {"num_predict": 100},
+        })
+        response.raise_for_status()
+        data = response.json()
+        return data.get("response", "").strip()
+
 async def query_vlm(frame_bytes: bytes, prompt: str):
     if VLM_PROVIDER == "claude": # or gemini, GPT
         ...
     return await query_ollama(frame_bytes, prompt)
 
-async def query_vlm_text( prompt: str):
+async def query_vlm_text(prompt: str):
     if VLM_PROVIDER == "claude": # or gemini, GPT
         ...
     return await query_ollama_text(prompt)
+
+async def query_text_model(prompt: str):
+    return await query_llama(prompt)

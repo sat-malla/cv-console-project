@@ -60,6 +60,7 @@ export function AgentBot() {
   const [chatInput, setChatInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
+  const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
   const { activeSession } = useCameraSessions();
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -67,6 +68,14 @@ export function AgentBot() {
   const fetchLogs = async () => {
     if (!activeSession) return;
     try {
+      const params = new URLSearchParams();
+      if (dateRange?.start) {
+        params.set("start", dateRange.start);
+      }
+      if (dateRange?.end) {
+        params.set("end", dateRange.end);
+      }
+
       const res = await fetch(`http://127.0.0.1:8000/session/${activeSession.sessionId}/logs`);
       const data = await res.json();
       setLogs(data.logs ?? []);
@@ -179,6 +188,36 @@ export function AgentBot() {
               Chat
             </button>
           </div>
+
+          {activeTab === "logs" && (
+            <div className="flex items-center gap-2 px-4 pt-2">
+              <input
+                type="datetime-local"
+                onChange={(e) =>
+                  setDateRange(
+                    (prev) => ({ ...prev, start: new Date(e.target.value).toISOString() }) as any,
+                  )
+                }
+                className="bg-background border border-border rounded-md px-2 py-1 text-[10px] font-mono"
+              />
+              <span className="text-muted-foreground text-[10px]">to</span>
+              <input
+                type="datetime-local"
+                onChange={(e) =>
+                  setDateRange(
+                    (prev) => ({ ...prev, end: new Date(e.target.value).toISOString() }) as any,
+                  )
+                }
+                className="bg-background border border-border rounded-md px-2 py-1 text-[10px] font-mono"
+              />
+              <button
+                onClick={() => setDateRange(null)}
+                className="text-[10px] text-muted-foreground hover:text-foreground underline"
+              >
+                Clear
+              </button>
+            </div>
+          )}
 
           {isThinking && (
             <div className="flex items-center gap-1.5 p-4 font-mono text-[12px] text-muted-foreground uppercase tracking-widest">

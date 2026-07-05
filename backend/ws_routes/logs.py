@@ -1,16 +1,17 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 import cv2
+import supabase
 
-from sb_logging import get_recent_logs
+from sb_logging import get_relevant_logs, get_logs_by_range
 from vlm_providers import query_vlm, query_vlm_text
 from sessions import sessions
 
 router = APIRouter()
 
 @router.get("/session/{session_id}/logs")
-async def fetch_logs(session_id: str):
-    logs = get_recent_logs(session_id)
+async def fetch_logs(session_id: str, start=None, end=None):
+    logs = get_logs_by_range(session_id, start, end)
     session = sessions.get(session_id)
     is_thinking = session["agent_thinking"] if session else False
     return {"logs": logs, "thinking": is_thinking}
@@ -20,7 +21,7 @@ class ChatRequest(BaseModel):
 
 @router.post("/session/{session_id}/chat")
 async def agent_chat(session_id, req: ChatRequest):
-    logs = get_recent_logs(session_id, limit=20)
+    logs = get_relevant_logs(session_id, req.message, limit=20)
     log_lines = "\n".join(f"- [{l['type']}] {l['message']}" for l in reversed(logs)) # type: ignore
     decide_live_look = (
         f"Recent observations:\n{log_lines}\n\n"

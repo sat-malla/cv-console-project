@@ -151,7 +151,7 @@ export function AgentBot() {
               <span className="font-semibold text-sm">PRISM Agent</span>
               {activeSession && (
                 <span className="text-xs text-muted-foreground font-mono">
-                  · {activeSession.cameraName}
+                  | {activeSession.cameraName}
                 </span>
               )}
             </div>
@@ -335,7 +335,11 @@ export function AgentBot() {
 
 function LogRow({ log, compact = false }: { log: LogEntry; compact?: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  const time = new Date(log.created_at).toLocaleTimeString([], { hour12: false });
+  
+  const dateObj = new Date(log.created_at);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const dateStr = `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}`;
+  const timeStr = dateObj.toLocaleTimeString([], { hour12: false });
 
   const Icon = VIEW_ICONS[log.type] ?? Video;
   const label = VIEW_LABELS[log.type] ?? log.type;
@@ -350,7 +354,7 @@ function LogRow({ log, compact = false }: { log: LogEntry; compact?: boolean }) 
       <div className="flex items-center gap-1.5 mb-0.5">
         <Icon className={`h-3 w-3 ${log.flagged ? "text-red-400" : "text-muted-foreground"}`} />
         <span className="font-mono text-[9px] text-muted-foreground uppercase tracking-widest">
-          {label} · {time}
+          {label} | {dateStr} | {timeStr}
         </span>
       </div>
       <p className={`text-xs leading-snug ${compact && !expanded ? "line-clamp-2" : ""}`}>

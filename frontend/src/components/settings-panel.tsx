@@ -171,7 +171,7 @@ function CameraModal() {
           <div className="flex flex-col md:flex-row max-h-[85vh]">
             <div className="flex-1 bg-black relative">
               <div className="absolute top-3 left-3 px-2 py-0.5 rounded bg-black/60 text-white font-mono text-[11px] tracking-widest">
-                {openCam.id} · {openCam.label}
+                {openCam.id} | {openCam.label}
               </div>
               <div className="absolute top-3 right-3 px-2 py-0.5 rounded bg-black/60 text-white font-mono text-[11px] tracking-widest">
                 <div className="text-white/80">

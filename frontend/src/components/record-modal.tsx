@@ -94,7 +94,7 @@ export function RecordButton() {
                   className="accent-red-500"
                 />
                 <span className="font-mono text-xs">
-                  {cam.id} · {cam.label}
+                  {cam.id} | {cam.label}
                 </span>
               </label>
             ))}

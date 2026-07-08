@@ -58,7 +58,7 @@ export function LiveTimestamp() {
 
   return (
     <span>
-      {date} {time}
+      {date} | {time}
     </span>
   );
 }

@@ -53,6 +53,10 @@ const VIEW_LABELS: Record<string, string> = {
 };
 
 export function AgentBot() {
+  const BASE_WIDTH = 600;
+  const BASE_HEIGHT = 640;
+  const MAX_SCALE = 2;
+
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"logs" | "chat">("logs");
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -62,8 +66,92 @@ export function AgentBot() {
   const [isThinking, setIsThinking] = useState(false);
   const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
   const { activeSession } = useCameraSessions();
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const [size, setSize] = useState({ width: 600, height: 640 });
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(
+    null,
+  );
+  const panelRef = useRef<HTMLDivElement>(null);
+  const resizeRef = useRef<{
+    startX: number;
+    startY: number;
+    startW: number;
+    startH: number;
+  } | null>(null);
+
+  const handleDragStart = (e: React.MouseEvent) => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const rect = panel.getBoundingClientRect();
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: rect.left,
+      origY: rect.top,
+    };
+    document.addEventListener("mousemove", handleDragMove);
+    document.addEventListener("mouseup", handleDragEnd);
+  };
+
+  const handleDragMove = (e: MouseEvent) => {
+    if (!dragRef.current) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    setPosition({
+      x: dragRef.current.origX + dx,
+      y: dragRef.current.origY + dy,
+    });
+  };
+
+  const handleDragEnd = () => {
+    dragRef.current = null;
+    document.removeEventListener("mousemove", handleDragMove);
+    document.removeEventListener("mouseup", handleDragEnd);
+  };
+
+  useEffect(() => {
+    return () => {
+      document.removeEventListener("mousemove", handleDragMove);
+      document.removeEventListener("mouseup", handleDragEnd);
+    };
+  }, []);
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    resizeRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startW: size.width,
+      startH: size.height,
+    };
+    document.addEventListener("mousemove", handleResizeMove);
+    document.addEventListener("mouseup", handleResizeEnd);
+  };
+
+  const handleResizeMove = (e: MouseEvent) => {
+    if (!resizeRef.current) return;
+    const dx = e.clientX - resizeRef.current.startX;
+    const dy = e.clientY - resizeRef.current.startY;
+
+    const newWidth = Math.min(
+      Math.max(resizeRef.current.startW + dx, BASE_WIDTH),
+      BASE_WIDTH * MAX_SCALE,
+    );
+    const newHeight = Math.min(
+      Math.max(resizeRef.current.startH + dy, BASE_HEIGHT),
+      BASE_HEIGHT * MAX_SCALE,
+    );
+
+    setSize({ width: newWidth, height: newHeight });
+  };
+
+  const handleResizeEnd = () => {
+    resizeRef.current = null;
+    document.removeEventListener("mousemove", handleResizeMove);
+    document.removeEventListener("mouseup", handleResizeEnd);
+  };
 
   const fetchLogs = async () => {
     if (!activeSession) return;
@@ -82,6 +170,7 @@ export function AgentBot() {
       setIsThinking(data.thinking ?? false);
     } catch (e) {
       console.error("Failed to fetch logs:", e);
+      setIsThinking(false);
     }
   };
 
@@ -144,19 +233,42 @@ export function AgentBot() {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
       {open && (
-        <div className="w-150 h-160 rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-            <div className="flex items-center gap-2">
-              <Bot className="h-4 w-4 text-muted-foreground" />
-              <span className="font-semibold text-sm">PRISM Agent</span>
+        <div
+          ref={panelRef}
+          style={{
+            width: size.width,
+            height: size.height,
+            ...(position
+              ? {
+                  position: "fixed",
+                  left: position.x,
+                  top: position.y,
+                  right: "auto",
+                  bottom: "auto",
+                }
+              : {}),
+          }}
+          className="rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl flex flex-col overflow-hidden relative"
+        >
+          <div
+            onMouseDown={handleDragStart}
+            className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Bot className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="flex items-center gap-2 text-sm font-semibold whitespace-nowrap">
+                <span>PRISM Agent | Resize and Drag the Panel Around</span>
+                <Move size={16} className="shrink-0" />
+              </span>
               {activeSession && (
-                <span className="text-xs text-muted-foreground font-mono">
+                <span className="shrink-0 text-xs text-muted-foreground font-mono whitespace-nowrap">
                   | {activeSession.cameraName}
                 </span>
               )}
             </div>
             <button
               onClick={() => setOpen(false)}
+              onMouseDown={(e) => e.stopPropagation()}
               aria-label="Close"
               className="text-muted-foreground hover:text-foreground"
             >
@@ -319,6 +431,13 @@ export function AgentBot() {
               </div>
             </div>
           )}
+          <div
+            onMouseDown={handleResizeStart}
+            className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize"
+            style={{
+              background: "linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.15) 50%)",
+            }}
+          />
         </div>
       )}
 
@@ -335,7 +454,7 @@ export function AgentBot() {
 
 function LogRow({ log, compact = false }: { log: LogEntry; compact?: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  
+
   const dateObj = new Date(log.created_at);
   const pad = (n: number) => String(n).padStart(2, "0");
   const dateStr = `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}`;

@@ -12,7 +12,12 @@ from frame_processors import (
 )
 
 OLLAMA_URL = "http://localhost:11434/api/generate" # Local hosted model for now - the budge holds ://
-SAFETY_PROMPT = "Is there a safety hazard visible in this image? Answer only 'yes' or 'no'."
+SAFETY_PROMPT = (
+    "Look carefully at this image. Is there an ACTIVE, CONCRETE safety hazard — "
+    "such as fire, smoke, a person or object in the way, unusual behaviors, exposed wires? "
+    "Do not flag normal household objects like furniture, electronics, or decorations as hazards. "
+    "Answer only 'yes' or 'no'."
+)
 SAFETY_REASON_PROMPT = "In under 10 words, what is the hazard?"
 SYNTHESIS_PROMPT = """You are analyzing six simultaneous camera views of the same physical scene, each processed differently with potentially applied filters and settings:
 

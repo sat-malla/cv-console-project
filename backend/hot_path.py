@@ -1,3 +1,5 @@
+COOLDOWN_SECONDS = 20
+
 def evaluate_hard_rules(telemetry: dict) -> list[str]:
     """
     Pure, deterministic, no model calls. Takes structured telemetry from
@@ -23,3 +25,12 @@ def evaluate_hard_rules(telemetry: dict) -> list[str]:
         triggered.append("fast_movement")
 
     return triggered
+
+def get_rules_to_fire(triggered: list[str], last_triggered: dict, now: float) -> list[str]:
+    to_fire = []
+    for rule in triggered:
+        last = last_triggered.get(rule, 0)
+        if now - last >= COOLDOWN_SECONDS:
+            to_fire.append(rule)
+            last_triggered[rule] = now
+    return to_fire

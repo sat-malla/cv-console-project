@@ -39,7 +39,7 @@ def create_session(index: int, name: str) -> dict:
         "camera_name": name,
         "latest_frame": None,
         "configs": default_configs(),
-        "latest_telemery": {
+        "latest_telemetry": {
             "canny": {},
             "motion": {},
             "yolo": {},
@@ -65,6 +65,7 @@ def create_session(index: int, name: str) -> dict:
             "stvis": None,
         },
         "agent_thinking": False,
+        "last_triggered": {},
     }
 
     asyncio.create_task(capture_loop(session_id))

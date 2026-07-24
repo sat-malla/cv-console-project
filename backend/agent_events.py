@@ -10,7 +10,7 @@ from models import model, midas, midas_transform
 from frame_processors import (
     process_reg, process_canny, process_motion, process_yolo, process_sfm, process_stereo_vision
 )
-from hot_path import evaluate_hard_rules
+from hot_path import evaluate_hard_rules, get_rules_to_fire
 
 OLLAMA_URL = "http://localhost:11434/api/generate" # Local hosted model for now - the budge holds ://
 SAFETY_PROMPT = (
@@ -99,6 +99,33 @@ async def analyze_view(session, session_id, view_type, frame):
     log_event(session_id=session_id, event_type=f"scene_{view_type}", message=condensed, flagged=False)
     session["last_scene_messages"][view_type] = condensed
 
+async def handle_cold_path(session_id: str, session: dict, rule: str, telemetry: dict):
+    """
+    The actual Cold Path: wakes the LLM only because a hard rule tripped.
+    """
+    raw_frame = session["latest_frame"]
+    if raw_frame is None:
+        return
+
+    frame_bytes = encode(raw_frame)
+
+    if rule in ("person_detected", "fast_movement"):
+        result = await check_safety(frame_bytes)
+        message = result["reason"] if result["flagged"] else f"Rule '{rule}' triggered — no hazard confirmed by vision check."
+        flagged = result["flagged"]
+    else:
+        description = await describe_and_condense(frame_bytes)
+        message = f"[{rule}] {description}"
+        flagged = False
+
+    await session["summary_queue"].put({
+        "type": "cold_path",
+        "rule": rule,
+        "message": message,
+        "timestamp": time.time(),
+    })
+    log_event(session_id=session_id, event_type=f"trigger_{rule}", message=message, flagged=flagged)
+
 async def agent_loop(session_id: str, sessions: dict):
     HOT_PATH_INTERVAL = 1.0 # check telemetry every 1s
     last_hot_check = 0
@@ -110,13 +137,11 @@ async def agent_loop(session_id: str, sessions: dict):
         if now - last_hot_check >= HOT_PATH_INTERVAL:
             telemetry = session["latest_telemetry"]
             triggered_rules = evaluate_hard_rules(telemetry)
+            rules_to_fire = get_rules_to_fire(triggered_rules, session["last_triggered"], now)
 
-            if triggered_rules:
-                print(f"Rules triggered: {triggered_rules}")
+            for rule in rules_to_fire:
+                asyncio.create_task(handle_cold_path(session_id, session, rule, telemetry))
 
             last_hot_check = now
 
         await asyncio.sleep(0.1)
-
-
-    

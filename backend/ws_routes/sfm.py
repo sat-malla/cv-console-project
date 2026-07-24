@@ -81,6 +81,7 @@ async def sfm_feed(websocket: WebSocket, session_id: str):
                     good_old = prev_points[status == 1]
                     color = hue_to_bgr(config["hue"])
 
+                    magnitudes = []
                     for new, old in zip(good_new, good_old):
                         x_new, y_new = map(int, new.ravel())
                         x_old, y_old = map(int, old.ravel())
@@ -92,7 +93,13 @@ async def sfm_feed(websocket: WebSocket, session_id: str):
 
                         cv2.arrowedLine(frame, (x_old, y_old), (x_end, y_end), color, 1, tipLength=0.3)
                         cv2.circle(frame, (x_new, y_new), config["pointSize"], color, -1)
-
+                        magnitudes.append(float(np.sqrt(dx**2 + dy**2)))
+                    
+                    session["latest_telemetry"]["sfm"] = {
+                        "tracked_point_count": len(good_new),
+                        "avg_motion_magnitude": round(float(np.mean(magnitudes)), 3) if magnitudes else 0.0,
+                    }
+                    
                     prev_frame = curr_frame.copy()
                     prev_points = good_new.reshape(-1, 1, 2) if len(good_new) > 0 else None
 

@@ -4,6 +4,7 @@ import asyncio
 import json
 
 import cv2
+import numpy as np
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 import frame_source
@@ -49,6 +50,7 @@ async def yolo_feed(websocket: WebSocket, session_id: str):
 
                 results = model(frame, device="mps", verbose=False)
                 boxes = sorted(results[0].boxes, key=lambda b: float(b.conf), reverse=True)
+                detected_objects = []
                 for box in boxes[:config["max_detections"]]:
                     if box.conf < config["conf_threshold"]:
                         continue
@@ -62,6 +64,14 @@ async def yolo_feed(websocket: WebSocket, session_id: str):
                     (text_w, text_h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
                     cv2.rectangle(frame, (x1, y1 - text_h - 6), (x1 + text_w, y1), (0, 255, 0), -1)
                     cv2.putText(frame, label, (x1, y1 - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+                    
+
+                    detected_objects.append({"class": class_name, "conf": round(conf, 3), "bbox": [x1, y1, x2, y2]})
+
+                session["latest_telemetry"]["yolo"] = {
+                    "detected_objects": detected_objects,
+                    "object_count": len(detected_objects),
+                } 
 
                 _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                 await websocket.send_bytes(buffer.tobytes())

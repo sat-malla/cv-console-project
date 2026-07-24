@@ -4,6 +4,7 @@ import asyncio
 import json
 
 import cv2
+import numpy as np
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 import frame_source
@@ -38,6 +39,8 @@ async def canny_feed(websocket: WebSocket, session_id: str):
                 frame = latest_frame.copy()
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 edges = cv2.Canny(gray, config["threshold1"], config["threshold2"])
+                edge_density = float(np.count_nonzero(edges)) / edges.size
+                session["latest_telemetry"]["canny"] = {"edge_density": round(edge_density, 4)}
                 edges_bgr = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
                 _, buffer = cv2.imencode('.jpg', edges_bgr, [cv2.IMWRITE_JPEG_QUALITY, 70])
                 await websocket.send_bytes(buffer.tobytes())

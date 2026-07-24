@@ -5,6 +5,7 @@ import json
 
 import cv2
 import torch
+import numpy as np
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 import frame_source
@@ -51,6 +52,11 @@ async def stereo_vis_feed(websocket: WebSocket, session_id: str):
                     ).squeeze()
 
                 depth_map = prediction.cpu().numpy()
+                session["latest_telemetry"]["stvis"] = {
+                    "depth_min": round(float(depth_map.min()), 3),
+                    "depth_max": round(float(depth_map.max()), 3),
+                    "depth_mean": round(float(depth_map.mean()), 3),
+                }
                 depth_map = depth_map * config.get("contrast", 1.0)
                 depth_min = depth_map.min()
                 depth_max = depth_map.max()

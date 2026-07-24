@@ -4,6 +4,7 @@ import asyncio
 import json
 
 import cv2
+import numpy as np
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 import frame_source
@@ -51,6 +52,8 @@ async def mog2_feed(websocket: WebSocket, session_id: str):
                 kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
                 fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_OPEN, kernel)
                 fg_mask = cv2.dilate(fg_mask, kernel, iterations=config["dilateIter"])
+                motion_pixel_ratio = float(np.count_nonzero(fg_mask)) / fg_mask.size
+                session["latest_telemetry"]["motion"] = {"motion_pixel_ratio": round(motion_pixel_ratio, 4)}
                 fg_bgr = cv2.cvtColor(fg_mask, cv2.COLOR_GRAY2BGR)
 
                 _, buffer = cv2.imencode('.jpg', fg_bgr, [cv2.IMWRITE_JPEG_QUALITY, 70])

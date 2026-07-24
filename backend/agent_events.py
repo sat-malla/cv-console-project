@@ -10,6 +10,7 @@ from models import model, midas, midas_transform
 from frame_processors import (
     process_reg, process_canny, process_motion, process_yolo, process_sfm, process_stereo_vision
 )
+from hot_path import evaluate_hard_rules
 
 OLLAMA_URL = "http://localhost:11434/api/generate" # Local hosted model for now - the budge holds ://
 SAFETY_PROMPT = (
@@ -99,80 +100,23 @@ async def analyze_view(session, session_id, view_type, frame):
     session["last_scene_messages"][view_type] = condensed
 
 async def agent_loop(session_id: str, sessions: dict):
-    last_scene_analysis_time = 0
-    SCENE_ANALYSIS_INT = 20.0 # seconds
+    HOT_PATH_INTERVAL = 1.0 # check telemetry every 1s
+    last_hot_check = 0
 
     while session_id in sessions:
         session = sessions[session_id]
-        event_queue = session["event_queue"]
-
-        try:
-            event = await asyncio.wait_for(event_queue.get(), timeout=1.0) # wait for 1 second
-            frame_bytes = event["frame_bytes"]
-            safety_result = await check_safety(frame_bytes)
-            if safety_result["flagged"]:
-                message = safety_result["reason"]
-                if message != "urn":
-                    await session["summary_queue"].put({
-                        "type": "safety",
-                        "message": safety_result["reason"],
-                        "timestamp": time.time()
-                    })
-                    log_event(
-                        session_id=session_id,
-                        event_type="safety",
-                        message=message,
-                        flagged=True
-                    )
-        except asyncio.TimeoutError:
-            pass
-
+        
         now = time.time()
-        if now - last_scene_analysis_time >= SCENE_ANALYSIS_INT:
-            session = sessions.get(session_id)
-            if session and session["latest_frame"] is not None:
-                session["agent_thinking"] = True
-                try:
-                    raw_frame = session["latest_frame"].copy()
-                    configs = session["configs"]
+        if now - last_hot_check >= HOT_PATH_INTERVAL:
+            telemetry = session["latest_telemetry"]
+            triggered_rules = evaluate_hard_rules(telemetry)
 
-                    regular_view = process_reg(raw_frame, configs["regular"])
-                    canny_view = process_canny(raw_frame, configs["canny"])
-                    motion_view = process_motion(raw_frame, configs["motion"], session["fgbg"])
-                    yolo_view = process_yolo(raw_frame, configs["yolo"], model)
-                    sfm_view, new_gray, new_points = process_sfm(
-                        raw_frame, configs["sfm"],
-                        session["agent_sfm_prev_gray"], session["agent_sfm_prev_points"],
-                        hue_to_bgr
-                    )
-                    session["agent_sfm_prev_gray"] = new_gray
-                    session["agent_sfm_prev_points"] = new_points
-                    stvis_view = process_stereo_vision(raw_frame, configs["stvis"], midas, midas_transform)
+            if triggered_rules:
+                print(f"Rules triggered: {triggered_rules}")
 
-                    # moondream analyzes each camera view -> synthesizes with llama3.2
-                    descriptions = {
-                        "regular": await analyze_view_raw(regular_view),
-                        "canny": await analyze_view_raw(canny_view),
-                        "motion": await analyze_view_raw(motion_view),
-                        "yolo": await analyze_view_raw(yolo_view),
-                        "sfm": await analyze_view_raw(sfm_view),
-                        "stvis": await analyze_view_raw(stvis_view),
-                    }
+            last_hot_check = now
 
-                    narrative = await synthesize_views(descriptions)
-
-                    last_message = session.get("last_scene_message")
-                    if not is_similar(narrative, last_message):
-                        await session["summary_queue"].put({
-                            "type": "scene",
-                            "message": narrative,
-                            "timestamp": now,
-                        })
-                        log_event(session_id=session_id, event_type="scene", message=narrative, flagged=False)
-                        session["last_scene_message"] = narrative
-                finally:
-                    session["agent_thinking"] = False
-            last_scene_analysis_time = now
+        await asyncio.sleep(0.1)
 
 
     

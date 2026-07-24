@@ -39,6 +39,13 @@ def create_session(index: int, name: str) -> dict:
         "camera_name": name,
         "latest_frame": None,
         "configs": default_configs(),
+        "latest_telemery": {
+            "canny": {},
+            "motion": {},
+            "yolo": {},
+            "sfm": {},
+            "stvis": {},
+        },
         "fgbg": cv2.createBackgroundSubtractorMOG2(history=100, varThreshold=50, detectShadows=True),
         "sfm_prev_frame": None,
         "sfm_prev_points": None,

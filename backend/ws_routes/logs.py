@@ -1,11 +1,10 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-import cv2
-import supabase
 
-from sb_logging import get_relevant_logs, get_logs_by_range
-from vlm_providers import query_vlm, query_vlm_text, query_text_model
+from backend.local_storage import get_logs_by_range
+from vlm_providers import query_text_model
 from sessions import sessions
+from query_engine import parse_intent, execute_intent
 
 router = APIRouter()
 
@@ -31,54 +30,29 @@ Decide how to answer this question. Respond with exactly one word:
 
 Respond with only one word: logs, live, or unknown."""
 
-@router.post("/session/{session_id}/chat")
-async def agent_chat(session_id, req: ChatRequest):
-    logs = get_relevant_logs(session_id, req.message, limit=20)
-    log_lines = "\n".join(f"- [{l['type']}] {l['message']}" for l in reversed(logs)) # type: ignore
-    decision = (await query_text_model(
-        DECISION_PROMPT.format(log_lines=log_lines, question=req.message)
-    )).strip().lower()
+@router.get("/session/{session_id}/logs")
+async def chat_with_agent(session_id: str, req: ChatRequest):
+    intent = await parse_intent(req.message)
+    rows = execute_intent(session_id, intent)
 
-    if decision == "live":
-        session = sessions.get(session_id)
-        if session and session["latest_frame"] is not None:
-            _, buffer = cv2.imencode('.jpg', session["latest_frame"], [cv2.IMWRITE_JPEG_QUALITY, 70])
-            frame_bytes = buffer.tobytes()
-            live_prompt = (
-                f"The user asks: {req.message}\n\n"
-                "Answer in a full sentence, based on what you currently see. "
-                "Be specific about what you observe."
-            )
-            answer = await query_vlm(frame_bytes, live_prompt)
-            return {"reply": answer, "used_live_frame": True, "source": "live"}
-
-    if decision == "unknown":
+    if not rows:
         return {
-            "reply": "I don't have enough information to answer that. My observations only cover what the cameras can see, not things like intent or history.",
-            "used_live_frame": False,
-            "source": "unknown",
-        }         
-    
-    prompt = (
-        "You are a computer vision camera monitoring assistant, keeping high alert on what you see from the camera view. Here are recent observations from a camera feed:\n\n"
-        f"Observations: {log_lines}\n\n"
-        f"The user asks: {req.message}\n\n"
-        "Write a full explanation in 2-3 sentences. Never answer with just 'yes' or 'no' — "
-        "always explain what specifically was observed and why. Begin your answer now:"
+            "reply": "I couldn't find any matching data for that query.",
+            "source": "structured_query",
+            "row_count": 0,
+        }
+
+    rows_text = "\n".join(f"- {row}" for row in rows[:20])
+
+    answer_prompt = (
+        f"The user asked: {req.message}\n\n"
+        f"Here is the exact data retrieved from the database:\n{rows_text}\n\n"
+        "Write a 1-3 sentence natural language answer using these exact numbers/facts. "
+        "Do not estimate or guess — only state what's in the data above."
     )
-    response = await query_text_model(prompt)
+    answer = await query_text_model(answer_prompt)
 
-    if len(response.strip().split()) <= 3:
-        followup_prompt = (
-            f"You previously answered '{response}' to the question '{req.message}' "
-            f"based on these observations:\n{log_lines}\n\n"
-            "Expand this into 2-3 full sentences explaining the specific reasoning."
-        )
-        answer = await query_text_model(followup_prompt)
-    return {"reply": response, "used_live_frame": False, "source": "logs"}
-
-
-
+    return {"reply": answer, "source": "structured_query", "row_count": len(rows)}
 
 
 

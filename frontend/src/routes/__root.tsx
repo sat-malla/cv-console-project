@@ -18,6 +18,8 @@ import { Footer } from "@/components/footer";
 import { SettingsPanelProvider } from "@/components/settings-panel";
 import { RecordingProvider } from "@/contexts/recording-context";
 import { CameraSessionsProvider } from "@/contexts/camera-sessions-context";
+import { AlertProvider } from "@/contexts/alert-context";
+import { AlertToast } from "@/components/alert-toast";
 
 function NotFoundComponent() {
   return (
@@ -137,15 +139,18 @@ function RootComponent() {
         <RecordingProvider>
           <CameraSessionsProvider>
             <SettingsPanelProvider>
-              <div className="min-h-screen flex flex-col">
-                {!isPanel && <NavBar />}
-                <div className="flex-1 flex gap-6">
-                  <main className="flex-1 min-w-0">
-                    <Outlet />
-                  </main>
+              <AlertProvider>
+                <div className="min-h-screen flex flex-col">
+                  {!isPanel && <NavBar />}
+                  <AlertToast />
+                  <div className="flex-1 flex gap-6">
+                    <main className="flex-1 min-w-0">
+                      <Outlet />
+                    </main>
+                  </div>
+                  {!isPanel && <Footer />}
                 </div>
-                {!isPanel && <Footer />}
-              </div>
+              </AlertProvider>
             </SettingsPanelProvider>
           </CameraSessionsProvider>
         </RecordingProvider>

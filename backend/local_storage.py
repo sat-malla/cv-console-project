@@ -44,9 +44,11 @@ def write_telemetry(session_id: str, view_type: str, data: dict):
                 [session_id, view_type, key, float(value), now]
             )
 
-def get_logs_by_range(session_id: str, start: Optional[float] = None, end: Optional[float] = None, limit: int = 200):
+def get_logs_by_range(session_id: str, start: Optional[float] = None, end: Optional[float] = None, limit: int = 200, flagged_only: bool = False):
     query = "SELECT * FROM agent_logs WHERE session_id = ?"
     params: list[Any] = [session_id]
+    if flagged_only:
+        query += " AND flagged = true"
     if start:
         query += " AND created_at >= ?"
         params.append(start)

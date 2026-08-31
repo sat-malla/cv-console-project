@@ -12,6 +12,7 @@ TELEMETRY_KEYS = {
     "stvis": ["depth_min", "depth_max", "depth_mean"],
 }
 ALL_TELEMETRY_KEYS = [k for keys in TELEMETRY_KEYS.values() for k in keys]
+LIVE_INDICATORS = ["right now", "currently", "at this moment", "at the moment", "this instant"]
 
 def extract_time_window(question: str) -> tuple[float | None, float | None]:
     now = time.time()
@@ -35,6 +36,10 @@ def extract_time_window(question: str) -> tuple[float | None, float | None]:
         return target - 300, target + 300
 
     return None, None
+
+def question_implies_now(question):
+    q = question.lower()
+    return any(phrase in q for phrase in LIVE_INDICATORS)
 
 INTENT_PROMPT_TEMPLATE = """Convert this question into a JSON object for a computer vision monitoring database.
 

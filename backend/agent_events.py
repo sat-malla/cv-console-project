@@ -4,7 +4,7 @@ import cv2
 from difflib import SequenceMatcher
 
 from vlm_providers import query_vlm, query_text_model
-from sb_logging import log_event
+from backend.local_storage import log_event
 from utils import hue_to_bgr
 from models import model, midas, midas_transform
 from frame_processors import (
@@ -127,7 +127,7 @@ async def handle_cold_path(session_id: str, session: dict, rule: str, telemetry:
     log_event(session_id=session_id, event_type=f"trigger_{rule}", message=message, flagged=flagged)
 
 async def agent_loop(session_id: str, sessions: dict):
-    HOT_PATH_INTERVAL = 1.0 # check telemetry every 1s
+    HOT_PATH_INTERVAL = 0.3 # check telemetry every 0.3s
     last_hot_check = 0
 
     while session_id in sessions:
